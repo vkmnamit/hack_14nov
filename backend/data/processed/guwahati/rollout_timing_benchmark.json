@@ -1,0 +1,41 @@
+{
+  "scenario": "power_2024061808_n0.05",
+  "method": "Same CPU, same 50x50 grid, same one-hour forecast and ANUGA-generated initial state. The initial state already includes the six-hour spin-up, so that spin-up is excluded from ANUGA forecast time.",
+  "anuga_domain_setup_seconds": {
+    "median": 0.005432334000943229,
+    "trials": [
+      0.4038750420004362,
+      0.005393041996285319,
+      0.005432334000943229
+    ]
+  },
+  "anuga_60_minute_evolution_seconds": {
+    "median": 2.725397916001384,
+    "trials": [
+      2.725397916001384,
+      2.8904564999975264,
+      2.7250877909973497
+    ]
+  },
+  "anuga_setup_plus_forecast_seconds": {
+    "median": 2.8958495419938117,
+    "trials": [
+      3.1292729580018204,
+      2.8958495419938117,
+      2.730520124998293
+    ]
+  },
+  "convlstm_60_step_rollout_seconds": {
+    "median": 0.08671666699228808,
+    "trials": [
+      0.0790996670111781,
+      0.08211558400944341,
+      0.1317891250073444,
+      0.08838575000117999,
+      0.08671666699228808
+    ]
+  },
+  "forecast_evolution_speed_ratio": 31.428766931779794,
+  "anuga_setup_plus_forecast_speed_ratio": 33.39438244612592,
+  "caveat": "One representative 2024 high-rainfall test scenario; timings are not a benchmark across all scenarios or machines."
+}

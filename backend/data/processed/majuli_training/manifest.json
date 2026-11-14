@@ -1,0 +1,576 @@
+{
+  "location": "Garamur, Majuli, Assam, India",
+  "center": {
+    "latitude": 26.980306,
+    "longitude": 94.1574452
+  },
+  "elevation_source": "NASA/USGS SRTM 1 arc-second HGT via AWS Terrain Tiles (N26E094)",
+  "model": "ANUGA 4.2.0 shallow-water finite-volume solver",
+  "crs": "EPSG:32646",
+  "grid": {
+    "rows": 50,
+    "columns": 50,
+    "cell_size_m": 30.0,
+    "domain_width_m": 1500.0
+  },
+  "simulation": {
+    "duration_s": 3600.0,
+    "output_interval_s": 60.0,
+    "rainfall_profile_interval_s": 600.0,
+    "infiltration_loss_mm_hr": 5.0,
+    "manning_n": 0.05,
+    "boundary": "reflective on all sides",
+    "state_channels": [
+      "depth h (m)",
+      "x momentum hu (m^2/s)",
+      "y momentum hv (m^2/s)"
+    ],
+    "velocity_validity_threshold_m": 0.01,
+    "rainfall_channel": "effective rainfall after fixed loss (m/s)",
+    "target_depth_mask_threshold_m": 0.01
+  },
+  "array_shapes": {
+    "state_sequence": [
+      24,
+      61,
+      3,
+      50,
+      50
+    ],
+    "wet_mask_1cm": [
+      24,
+      61,
+      50,
+      50
+    ],
+    "rainfall_effective_m_s": [
+      24,
+      61,
+      50,
+      50
+    ],
+    "elevation_m": [
+      50,
+      50
+    ],
+    "manning_n": [
+      50,
+      50
+    ],
+    "mass_balance_relative_error": [
+      24,
+      61
+    ]
+  },
+  "sequence_learning": {
+    "input": "Current state channels plus rainfall, elevation, and Manning roughness; concatenate/expand the static grids as channels.",
+    "target": "Next time-step state channels (h, hu, hv).",
+    "velocity_note": "Derive velocity as (hu/h, hv/h) only where depth is at least 0.01 m; use wet_mask_1cm to mask velocity or momentum losses in near-dry cells.",
+    "split_policy": "Train/validation/test splits are assigned by whole scenario, never by randomly splitting adjacent time frames.",
+    "scenario_counts": {
+      "train": 16,
+      "validation": 4,
+      "test": 4
+    },
+    "normalization_statistics": {
+      "state_mean": [
+        0.018807252449410436,
+        2.8788409847340564e-05,
+        -5.099193413458517e-05
+      ],
+      "state_std": [
+        0.06750262759354125,
+        0.001151154836524093,
+        0.0012987629234241193
+      ],
+      "rainfall_effective_mean_m_s": 1.094055495191088e-05,
+      "rainfall_effective_std_m_s": 9.319744706366587e-06,
+      "elevation_mean_m": 86.7076,
+      "elevation_std_m": 3.341571821762926,
+      "computed_from": "training scenarios only"
+    }
+  },
+  "accuracy_note": "Mass-balance error checks numerical conservation, not real-world flood prediction accuracy. No observed Majuli flood depths or extents were used.",
+  "scenarios": [
+    {
+      "scenario_id": 0,
+      "name": "uniform_50__uniform",
+      "temporal_profile": "uniform_50",
+      "spatial_pattern": "uniform",
+      "rainfall_mm_hr_by_10min": [
+        50,
+        50,
+        50,
+        50,
+        50,
+        50
+      ],
+      "split": "validation",
+      "max_depth_m": 1.1674901247024536,
+      "max_speed_m_s_where_depth_ge_1cm": 0.42242494225502014,
+      "max_mass_balance_relative_error": 1.1260114368694119e-11,
+      "final_mass_balance_relative_error": 4.428237724424244e-12,
+      "final_inundated_cells_at_1cm": 771
+    },
+    {
+      "scenario_id": 1,
+      "name": "uniform_50__east_west_gradient",
+      "temporal_profile": "uniform_50",
+      "spatial_pattern": "east_west_gradient",
+      "rainfall_mm_hr_by_10min": [
+        50,
+        50,
+        50,
+        50,
+        50,
+        50
+      ],
+      "split": "train",
+      "max_depth_m": 1.406472086906433,
+      "max_speed_m_s_where_depth_ge_1cm": 0.35064107179641724,
+      "max_mass_balance_relative_error": 1.0307991439584274e-12,
+      "final_mass_balance_relative_error": 6.325232221673915e-13,
+      "final_inundated_cells_at_1cm": 751
+    },
+    {
+      "scenario_id": 2,
+      "name": "uniform_50__north_south_gradient",
+      "temporal_profile": "uniform_50",
+      "spatial_pattern": "north_south_gradient",
+      "rainfall_mm_hr_by_10min": [
+        50,
+        50,
+        50,
+        50,
+        50,
+        50
+      ],
+      "split": "train",
+      "max_depth_m": 1.265804409980774,
+      "max_speed_m_s_where_depth_ge_1cm": 0.45666664838790894,
+      "max_mass_balance_relative_error": 4.2645195100915467e-13,
+      "final_mass_balance_relative_error": 1.4458495978166702e-13,
+      "final_inundated_cells_at_1cm": 733
+    },
+    {
+      "scenario_id": 3,
+      "name": "uniform_50__localized_cell",
+      "temporal_profile": "uniform_50",
+      "spatial_pattern": "localized_cell",
+      "rainfall_mm_hr_by_10min": [
+        50,
+        50,
+        50,
+        50,
+        50,
+        50
+      ],
+      "split": "test",
+      "max_depth_m": 2.37760329246521,
+      "max_speed_m_s_where_depth_ge_1cm": 0.46484866738319397,
+      "max_mass_balance_relative_error": 2.1946505756372664e-13,
+      "final_mass_balance_relative_error": 1.5221299969146035e-13,
+      "final_inundated_cells_at_1cm": 691
+    },
+    {
+      "scenario_id": 4,
+      "name": "front_loaded__uniform",
+      "temporal_profile": "front_loaded",
+      "spatial_pattern": "uniform",
+      "rainfall_mm_hr_by_10min": [
+        75,
+        65,
+        55,
+        40,
+        25,
+        15
+      ],
+      "split": "train",
+      "max_depth_m": 1.174057126045227,
+      "max_speed_m_s_where_depth_ge_1cm": 0.34439706802368164,
+      "max_mass_balance_relative_error": 7.420668246549411e-12,
+      "final_mass_balance_relative_error": 1.5412754622926017e-12,
+      "final_inundated_cells_at_1cm": 590
+    },
+    {
+      "scenario_id": 5,
+      "name": "front_loaded__east_west_gradient",
+      "temporal_profile": "front_loaded",
+      "spatial_pattern": "east_west_gradient",
+      "rainfall_mm_hr_by_10min": [
+        75,
+        65,
+        55,
+        40,
+        25,
+        15
+      ],
+      "split": "validation",
+      "max_depth_m": 1.4022749662399292,
+      "max_speed_m_s_where_depth_ge_1cm": 0.4110267162322998,
+      "max_mass_balance_relative_error": 1.2056230579843286e-12,
+      "final_mass_balance_relative_error": 1.022395818180144e-12,
+      "final_inundated_cells_at_1cm": 581
+    },
+    {
+      "scenario_id": 6,
+      "name": "front_loaded__north_south_gradient",
+      "temporal_profile": "front_loaded",
+      "spatial_pattern": "north_south_gradient",
+      "rainfall_mm_hr_by_10min": [
+        75,
+        65,
+        55,
+        40,
+        25,
+        15
+      ],
+      "split": "train",
+      "max_depth_m": 1.2685285806655884,
+      "max_speed_m_s_where_depth_ge_1cm": 0.38520827889442444,
+      "max_mass_balance_relative_error": 6.32954409371389e-13,
+      "final_mass_balance_relative_error": 3.034717659458619e-13,
+      "final_inundated_cells_at_1cm": 563
+    },
+    {
+      "scenario_id": 7,
+      "name": "front_loaded__localized_cell",
+      "temporal_profile": "front_loaded",
+      "spatial_pattern": "localized_cell",
+      "rainfall_mm_hr_by_10min": [
+        75,
+        65,
+        55,
+        40,
+        25,
+        15
+      ],
+      "split": "train",
+      "max_depth_m": 2.33725643157959,
+      "max_speed_m_s_where_depth_ge_1cm": 0.49394258856773376,
+      "max_mass_balance_relative_error": 1.8837927366014556e-13,
+      "final_mass_balance_relative_error": 6.794368399062195e-14,
+      "final_inundated_cells_at_1cm": 534
+    },
+    {
+      "scenario_id": 8,
+      "name": "back_loaded__uniform",
+      "temporal_profile": "back_loaded",
+      "spatial_pattern": "uniform",
+      "rainfall_mm_hr_by_10min": [
+        15,
+        25,
+        40,
+        55,
+        65,
+        75
+      ],
+      "split": "train",
+      "max_depth_m": 1.0542510747909546,
+      "max_speed_m_s_where_depth_ge_1cm": 0.36296695470809937,
+      "max_mass_balance_relative_error": 3.365767040075518e-11,
+      "final_mass_balance_relative_error": 7.992268413921366e-13,
+      "final_inundated_cells_at_1cm": 881
+    },
+    {
+      "scenario_id": 9,
+      "name": "back_loaded__east_west_gradient",
+      "temporal_profile": "back_loaded",
+      "spatial_pattern": "east_west_gradient",
+      "rainfall_mm_hr_by_10min": [
+        15,
+        25,
+        40,
+        55,
+        65,
+        75
+      ],
+      "split": "train",
+      "max_depth_m": 1.2817894220352173,
+      "max_speed_m_s_where_depth_ge_1cm": 0.41185829043388367,
+      "max_mass_balance_relative_error": 2.80366897233153e-12,
+      "final_mass_balance_relative_error": 2.0764691507045574e-13,
+      "final_inundated_cells_at_1cm": 851
+    },
+    {
+      "scenario_id": 10,
+      "name": "back_loaded__north_south_gradient",
+      "temporal_profile": "back_loaded",
+      "spatial_pattern": "north_south_gradient",
+      "rainfall_mm_hr_by_10min": [
+        15,
+        25,
+        40,
+        55,
+        65,
+        75
+      ],
+      "split": "validation",
+      "max_depth_m": 1.141248345375061,
+      "max_speed_m_s_where_depth_ge_1cm": 0.48560845851898193,
+      "max_mass_balance_relative_error": 1.310615570064566e-12,
+      "final_mass_balance_relative_error": 3.4512787050987315e-13,
+      "final_inundated_cells_at_1cm": 848
+    },
+    {
+      "scenario_id": 11,
+      "name": "back_loaded__localized_cell",
+      "temporal_profile": "back_loaded",
+      "spatial_pattern": "localized_cell",
+      "rainfall_mm_hr_by_10min": [
+        15,
+        25,
+        40,
+        55,
+        65,
+        75
+      ],
+      "split": "train",
+      "max_depth_m": 2.2127575874328613,
+      "max_speed_m_s_where_depth_ge_1cm": 0.5597898364067078,
+      "max_mass_balance_relative_error": 8.339787736268145e-13,
+      "final_mass_balance_relative_error": 1.1133895048325362e-13,
+      "final_inundated_cells_at_1cm": 767
+    },
+    {
+      "scenario_id": 12,
+      "name": "double_peak__uniform",
+      "temporal_profile": "double_peak",
+      "spatial_pattern": "uniform",
+      "rainfall_mm_hr_by_10min": [
+        25,
+        55,
+        75,
+        25,
+        55,
+        75
+      ],
+      "split": "test",
+      "max_depth_m": 1.1569442749023438,
+      "max_speed_m_s_where_depth_ge_1cm": 0.48321017622947693,
+      "max_mass_balance_relative_error": 1.8925371686462356e-11,
+      "final_mass_balance_relative_error": 3.016265622685088e-12,
+      "final_inundated_cells_at_1cm": 896
+    },
+    {
+      "scenario_id": 13,
+      "name": "double_peak__east_west_gradient",
+      "temporal_profile": "double_peak",
+      "spatial_pattern": "east_west_gradient",
+      "rainfall_mm_hr_by_10min": [
+        25,
+        55,
+        75,
+        25,
+        55,
+        75
+      ],
+      "split": "train",
+      "max_depth_m": 1.4011237621307373,
+      "max_speed_m_s_where_depth_ge_1cm": 0.41286471486091614,
+      "max_mass_balance_relative_error": 4.958592672750506e-13,
+      "final_mass_balance_relative_error": 1.33877623071689e-13,
+      "final_inundated_cells_at_1cm": 861
+    },
+    {
+      "scenario_id": 14,
+      "name": "double_peak__north_south_gradient",
+      "temporal_profile": "double_peak",
+      "spatial_pattern": "north_south_gradient",
+      "rainfall_mm_hr_by_10min": [
+        25,
+        55,
+        75,
+        25,
+        55,
+        75
+      ],
+      "split": "train",
+      "max_depth_m": 1.2552471160888672,
+      "max_speed_m_s_where_depth_ge_1cm": 0.5321796536445618,
+      "max_mass_balance_relative_error": 1.689754564569712e-12,
+      "final_mass_balance_relative_error": 3.007395764711984e-13,
+      "final_inundated_cells_at_1cm": 863
+    },
+    {
+      "scenario_id": 15,
+      "name": "double_peak__localized_cell",
+      "temporal_profile": "double_peak",
+      "spatial_pattern": "localized_cell",
+      "rainfall_mm_hr_by_10min": [
+        25,
+        55,
+        75,
+        25,
+        55,
+        75
+      ],
+      "split": "validation",
+      "max_depth_m": 2.384212017059326,
+      "max_speed_m_s_where_depth_ge_1cm": 0.5240660905838013,
+      "max_mass_balance_relative_error": 8.568120171692506e-13,
+      "final_mass_balance_relative_error": 2.8274279957802607e-14,
+      "final_inundated_cells_at_1cm": 774
+    },
+    {
+      "scenario_id": 16,
+      "name": "intermittent__uniform",
+      "temporal_profile": "intermittent",
+      "spatial_pattern": "uniform",
+      "rainfall_mm_hr_by_10min": [
+        0,
+        70,
+        0,
+        60,
+        0,
+        70
+      ],
+      "split": "train",
+      "max_depth_m": 0.8040190935134888,
+      "max_speed_m_s_where_depth_ge_1cm": 0.3334815204143524,
+      "max_mass_balance_relative_error": 1.0870392259942907e-11,
+      "final_mass_balance_relative_error": 6.8202596348321265e-12,
+      "final_inundated_cells_at_1cm": 790
+    },
+    {
+      "scenario_id": 17,
+      "name": "intermittent__east_west_gradient",
+      "temporal_profile": "intermittent",
+      "spatial_pattern": "east_west_gradient",
+      "rainfall_mm_hr_by_10min": [
+        0,
+        70,
+        0,
+        60,
+        0,
+        70
+      ],
+      "split": "test",
+      "max_depth_m": 1.0742963552474976,
+      "max_speed_m_s_where_depth_ge_1cm": 0.3988995850086212,
+      "max_mass_balance_relative_error": 7.778931578744652e-13,
+      "final_mass_balance_relative_error": 1.5941558172811142e-14,
+      "final_inundated_cells_at_1cm": 756
+    },
+    {
+      "scenario_id": 18,
+      "name": "intermittent__north_south_gradient",
+      "temporal_profile": "intermittent",
+      "spatial_pattern": "north_south_gradient",
+      "rainfall_mm_hr_by_10min": [
+        0,
+        70,
+        0,
+        60,
+        0,
+        70
+      ],
+      "split": "train",
+      "max_depth_m": 0.9286414980888367,
+      "max_speed_m_s_where_depth_ge_1cm": 0.3735663592815399,
+      "max_mass_balance_relative_error": 6.344810744504659e-13,
+      "final_mass_balance_relative_error": 3.930852496801529e-13,
+      "final_inundated_cells_at_1cm": 744
+    },
+    {
+      "scenario_id": 19,
+      "name": "intermittent__localized_cell",
+      "temporal_profile": "intermittent",
+      "spatial_pattern": "localized_cell",
+      "rainfall_mm_hr_by_10min": [
+        0,
+        70,
+        0,
+        60,
+        0,
+        70
+      ],
+      "split": "train",
+      "max_depth_m": 1.8021653890609741,
+      "max_speed_m_s_where_depth_ge_1cm": 0.4740942120552063,
+      "max_mass_balance_relative_error": 2.487676948118023e-13,
+      "final_mass_balance_relative_error": 5.705791470810712e-14,
+      "final_inundated_cells_at_1cm": 679
+    },
+    {
+      "scenario_id": 20,
+      "name": "moderate_variable__uniform",
+      "temporal_profile": "moderate_variable",
+      "spatial_pattern": "uniform",
+      "rainfall_mm_hr_by_10min": [
+        30,
+        40,
+        50,
+        55,
+        40,
+        30
+      ],
+      "split": "train",
+      "max_depth_m": 1.0481494665145874,
+      "max_speed_m_s_where_depth_ge_1cm": 0.2668035328388214,
+      "max_mass_balance_relative_error": 1.3606315726888418e-11,
+      "final_mass_balance_relative_error": 4.89576044634954e-12,
+      "final_inundated_cells_at_1cm": 634
+    },
+    {
+      "scenario_id": 21,
+      "name": "moderate_variable__east_west_gradient",
+      "temporal_profile": "moderate_variable",
+      "spatial_pattern": "east_west_gradient",
+      "rainfall_mm_hr_by_10min": [
+        30,
+        40,
+        50,
+        55,
+        40,
+        30
+      ],
+      "split": "train",
+      "max_depth_m": 1.2700204849243164,
+      "max_speed_m_s_where_depth_ge_1cm": 0.3594951629638672,
+      "max_mass_balance_relative_error": 6.913214033350823e-13,
+      "final_mass_balance_relative_error": 1.3753252280524625e-13,
+      "final_inundated_cells_at_1cm": 614
+    },
+    {
+      "scenario_id": 22,
+      "name": "moderate_variable__north_south_gradient",
+      "temporal_profile": "moderate_variable",
+      "spatial_pattern": "north_south_gradient",
+      "rainfall_mm_hr_by_10min": [
+        30,
+        40,
+        50,
+        55,
+        40,
+        30
+      ],
+      "split": "test",
+      "max_depth_m": 1.1309232711791992,
+      "max_speed_m_s_where_depth_ge_1cm": 0.35188931226730347,
+      "max_mass_balance_relative_error": 1.3074758289932653e-12,
+      "final_mass_balance_relative_error": 1.7507420209741942e-13,
+      "final_inundated_cells_at_1cm": 605
+    },
+    {
+      "scenario_id": 23,
+      "name": "moderate_variable__localized_cell",
+      "temporal_profile": "moderate_variable",
+      "spatial_pattern": "localized_cell",
+      "rainfall_mm_hr_by_10min": [
+        30,
+        40,
+        50,
+        55,
+        40,
+        30
+      ],
+      "split": "train",
+      "max_depth_m": 2.1638684272766113,
+      "max_speed_m_s_where_depth_ge_1cm": 0.47339966893196106,
+      "max_mass_balance_relative_error": 3.1616443946398676e-13,
+      "final_mass_balance_relative_error": 2.9241312062694425e-14,
+      "final_inundated_cells_at_1cm": 573
+    }
+  ]
+}

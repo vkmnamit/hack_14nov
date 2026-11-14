@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "location": "Garamur, Majuli, Assam, India",
+  "center": {
+    "latitude": 26.980306,
+    "longitude": 94.1574452
+  },
+  "source": "NASA/USGS SRTM 1 arc-second HGT via AWS Terrain Tiles",
+  "model": "ANUGA 2D shallow-water model; finite-volume solver",
+  "grid": {
+    "rows": 50,
+    "columns": 50,
+    "cell_size_m": 30.0,
+    "crs": "EPSG:32646",
+    "xll_m": 614110.7709637863,
+    "yll_m": 2984030.3490885,
+    "center_x_m": 614860.7709637863,
+    "center_y_m": 2984780.3490885,
+    "rainfall_mm_hr": 50.0,
+    "infiltration_mm_hr": 5.0,
+    "effective_rainfall_mm_hr": 45.0,
+    "storm_duration_s": 3600.0,
+    "output_interval_s": 60.0,
+    "manning_n": 0.05,
+    "boundary": "reflective on all sides"
+  },
+  "visualization": {
+    "terrain_vertical_exaggeration": 5,
+    "water_depth_exaggeration": 12
+  },
+  "limitations": [
+    "Synthetic uniform rainfall and constant infiltration; not observed or calibrated.",
+    "SRTM at about 30 m does not resolve buildings, drains, or small channels.",
+    "The 1.5 km square is a demonstration domain, not a delineated catchment.",
+    "This is a numerical demonstration, not a flood warning or validated forecast."
+  ],
+  "frame_count": 61
+}

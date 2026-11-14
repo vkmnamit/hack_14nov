@@ -1,0 +1,29 @@
+{
+  "location": "Sotai, Ballabgarh, Faridabad, Haryana, India",
+  "center": {
+    "latitude": 28.2927976,
+    "longitude": 77.3594597
+  },
+  "crs": "EPSG:32643",
+  "grid": {
+    "rows": 50,
+    "columns": 50,
+    "cell_size_m": 30.0,
+    "xllcorner": 730644.2214763832,
+    "yllcorner": 3131146.817308237
+  },
+  "elevation_source": "https://elevation-tiles-prod.s3.amazonaws.com/skadi/N28/N28E077.hgt.gz",
+  "elevation_product": "SRTM 1 arc-second HGT, approximately 30 m",
+  "rainfall": {
+    "intensity_mm_per_hour": 50.0,
+    "duration_seconds": 3600.0,
+    "type": "synthetic uniform demo storm; not observed rainfall"
+  },
+  "infiltration_mm_per_hour": 5.0,
+  "manning_n": 0.05,
+  "limitations": [
+    "SRTM terrain is too coarse to represent individual buildings or drains.",
+    "The uniform storm and constant infiltration are illustrative, not calibrated.",
+    "The square domain is not a delineated watershed."
+  ]
+}

@@ -1,0 +1,1662 @@
+{
+  "reference": "Stored ANUGA trajectories from guwahati_anuga_convlstm.npz",
+  "split": "test",
+  "scenario_count": 18,
+  "weights": "../model/guwahati_convlstm.pt",
+  "normalization": "../model/guwahati_normalization.npz",
+  "forecast_minutes": [
+    1,
+    5,
+    15,
+    30,
+    60
+  ],
+  "wet_threshold_m": 0.01,
+  "cell_area_m2": 900.0,
+  "device": "cpu",
+  "hidden_state_carried": true,
+  "torch_version": "2.15.0",
+  "model_parameter_count": 45923,
+  "rollout_timing_seconds": {
+    "mean": 0.09467792372581446,
+    "median": 0.09347991699905833,
+    "min": 0.08806224999716505,
+    "max": 0.11510587501106784,
+    "median_ms_per_step": 1.5579986166509723
+  },
+  "macro_average_by_horizon": {
+    "1": {
+      "depth_mae": 0.003255181969305138,
+      "depth_rmse": 0.008740982040762901,
+      "depth_bias": 0.00080371149185036,
+      "x_momentum_mae": 2.33516867511854e-05,
+      "x_momentum_rmse": 6.202106315969204e-05,
+      "x_momentum_bias": 9.126987865531393e-06,
+      "y_momentum_mae": 2.321861650974218e-05,
+      "y_momentum_rmse": 4.8535655903631574e-05,
+      "y_momentum_bias": 8.161355127514173e-06,
+      "wet_depth_mae_m": 0.019744285445829683,
+      "wet_depth_mean_relative_error_pct": 31.060188033364035,
+      "wet_area_csi": 0.7927267439667273,
+      "wet_area_precision": 0.7521013145426888,
+      "wet_area_recall": 0.8847041896401637,
+      "anuga_water_volume_m3": 24176.20925564236,
+      "convlstm_water_volume_m3": 25984.55867682563,
+      "water_volume_relative_error_pct": 43.43940679389954,
+      "velocity_u_mae_m_s": 0.001682157813444395,
+      "velocity_v_mae_m_s": 0.0018035358119628984,
+      "velocity_vector_mae_m_s": 0.0027892700057815423,
+      "speed_mae_m_s": 0.002472932310245762
+    },
+    "5": {
+      "depth_mae": 0.004941308968328586,
+      "depth_rmse": 0.012653910456315821,
+      "depth_bias": 0.0013280242197247895,
+      "x_momentum_mae": 5.751435881191153e-05,
+      "x_momentum_rmse": 8.497153986455587e-05,
+      "x_momentum_bias": 2.9498056651138744e-05,
+      "y_momentum_mae": 5.125672290281121e-05,
+      "y_momentum_rmse": 7.015277452006153e-05,
+      "y_momentum_bias": 1.9878679861701836e-05,
+      "wet_depth_mae_m": 0.03297756087373604,
+      "wet_depth_mean_relative_error_pct": 54.05451133034446,
+      "wet_area_csi": 0.66285117993655,
+      "wet_area_precision": 0.6532476270600218,
+      "wet_area_recall": 0.7584959661389409,
+      "anuga_water_volume_m3": 24491.042205810547,
+      "convlstm_water_volume_m3": 27479.095185173883,
+      "water_volume_relative_error_pct": 235.77496500001453,
+      "velocity_u_mae_m_s": 0.0024637232841500504,
+      "velocity_v_mae_m_s": 0.00257643203208731,
+      "velocity_vector_mae_m_s": 0.004034176765179092,
+      "speed_mae_m_s": 0.0033467374424534764
+    },
+    "15": {
+      "depth_mae": 0.008423351600665936,
+      "depth_rmse": 0.018987476631688576,
+      "depth_bias": -8.988846538058069e-05,
+      "x_momentum_mae": 8.712068802196882e-05,
+      "x_momentum_rmse": 0.00012852040577450275,
+      "x_momentum_bias": 2.5771495150668972e-05,
+      "y_momentum_mae": 7.998735585109291e-05,
+      "y_momentum_rmse": 0.00010873716918366781,
+      "y_momentum_bias": 2.9399943214356325e-05,
+      "wet_depth_mae_m": 0.047381933270530266,
+      "wet_depth_mean_relative_error_pct": 77.67041882601652,
+      "wet_area_csi": 0.5145477665353603,
+      "wet_area_precision": 0.5318986608076007,
+      "wet_area_recall": 0.6049580986670575,
+      "anuga_water_volume_m3": 25278.12472873264,
+      "convlstm_water_volume_m3": 25075.87569088406,
+      "water_volume_relative_error_pct": 365.8934124376138,
+      "velocity_u_mae_m_s": 0.003644350778565488,
+      "velocity_v_mae_m_s": 0.0032629665167240255,
+      "velocity_vector_mae_m_s": 0.0054678117687051945,
+      "speed_mae_m_s": 0.00444541429169476
+    },
+    "30": {
+      "depth_mae": 0.013938209591287887,
+      "depth_rmse": 0.03231332727268131,
+      "depth_bias": -0.00025951063637168973,
+      "x_momentum_mae": 0.00013342819662890784,
+      "x_momentum_rmse": 0.00019801755989748117,
+      "x_momentum_bias": 2.24804374384904e-05,
+      "y_momentum_mae": 0.0001166543116950278,
+      "y_momentum_rmse": 0.00016686933410407315,
+      "y_momentum_bias": 3.9073900893527025e-05,
+      "wet_depth_mae_m": 0.07414411349842946,
+      "wet_depth_mean_relative_error_pct": 127.43043454488118,
+      "wet_area_csi": 0.44885961487122156,
+      "wet_area_precision": 0.4549432367711722,
+      "wet_area_recall": 0.5000420187634158,
+      "anuga_water_volume_m3": 26458.749430338543,
+      "convlstm_water_volume_m3": 25874.85095553928,
+      "water_volume_relative_error_pct": 383.2174477778968,
+      "velocity_u_mae_m_s": 0.005404407430129747,
+      "velocity_v_mae_m_s": 0.004970671521732584,
+      "velocity_vector_mae_m_s": 0.008145831156677255,
+      "speed_mae_m_s": 0.006431080750189722
+    },
+    "60": {
+      "depth_mae": 0.01954221305519847,
+      "depth_rmse": 0.04551162576859093,
+      "depth_bias": -7.604538445270414e-05,
+      "x_momentum_mae": 0.00021133667698652262,
+      "x_momentum_rmse": 0.0003018785392264868,
+      "x_momentum_bias": 3.651660027672834e-05,
+      "y_momentum_mae": 0.0001734121500097293,
+      "y_momentum_rmse": 0.0002458514966039931,
+      "y_momentum_bias": 3.4997039910599094e-05,
+      "wet_depth_mae_m": 0.09703566040843725,
+      "wet_depth_mean_relative_error_pct": 127.16007486979167,
+      "wet_area_csi": 0.3816174451825139,
+      "wet_area_precision": 0.31432735833919906,
+      "wet_area_recall": 0.3562118607019013,
+      "anuga_water_volume_m3": 28820.000298394098,
+      "convlstm_water_volume_m3": 28648.898512098523,
+      "water_volume_relative_error_pct": 241.4779611725661,
+      "velocity_u_mae_m_s": 0.009251249954104424,
+      "velocity_v_mae_m_s": 0.008067334167814503,
+      "velocity_vector_mae_m_s": 0.01362054143100977,
+      "speed_mae_m_s": 0.011049909245533248
+    }
+  },
+  "grouped_metrics_by_horizon": {
+    "1": {
+      "temporal_profile": {
+        "NASA_POWER_hourly": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.003255181969305138,
+            "depth_rmse": 0.008740982040762901,
+            "depth_bias": 0.00080371149185036,
+            "x_momentum_mae": 2.33516867511854e-05,
+            "x_momentum_rmse": 6.202106315969204e-05,
+            "x_momentum_bias": 9.126987865531393e-06,
+            "y_momentum_mae": 2.321861650974218e-05,
+            "y_momentum_rmse": 4.8535655903631574e-05,
+            "y_momentum_bias": 8.161355127514173e-06,
+            "wet_depth_mae_m": 0.019744285445829683,
+            "wet_depth_mean_relative_error_pct": 31.060188033364035,
+            "wet_area_csi": 0.7927267439667273,
+            "wet_area_precision": 0.7521013145426888,
+            "wet_area_recall": 0.8847041896401637,
+            "anuga_water_volume_m3": 24176.20925564236,
+            "convlstm_water_volume_m3": 25984.55867682563,
+            "water_volume_relative_error_pct": 43.43940679389954,
+            "velocity_u_mae_m_s": 0.001682157813444395,
+            "velocity_v_mae_m_s": 0.0018035358119628984,
+            "velocity_vector_mae_m_s": 0.0027892700057815423,
+            "speed_mae_m_s": 0.002472932310245762
+          }
+        }
+      },
+      "spatial_pattern": {
+        "uniform_downscaled": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.003255181969305138,
+            "depth_rmse": 0.008740982040762901,
+            "depth_bias": 0.00080371149185036,
+            "x_momentum_mae": 2.33516867511854e-05,
+            "x_momentum_rmse": 6.202106315969204e-05,
+            "x_momentum_bias": 9.126987865531393e-06,
+            "y_momentum_mae": 2.321861650974218e-05,
+            "y_momentum_rmse": 4.8535655903631574e-05,
+            "y_momentum_bias": 8.161355127514173e-06,
+            "wet_depth_mae_m": 0.019744285445829683,
+            "wet_depth_mean_relative_error_pct": 31.060188033364035,
+            "wet_area_csi": 0.7927267439667273,
+            "wet_area_precision": 0.7521013145426888,
+            "wet_area_recall": 0.8847041896401637,
+            "anuga_water_volume_m3": 24176.20925564236,
+            "convlstm_water_volume_m3": 25984.55867682563,
+            "water_volume_relative_error_pct": 43.43940679389954,
+            "velocity_u_mae_m_s": 0.001682157813444395,
+            "velocity_v_mae_m_s": 0.0018035358119628984,
+            "velocity_vector_mae_m_s": 0.0027892700057815423,
+            "speed_mae_m_s": 0.002472932310245762
+          }
+        }
+      },
+      "initial_condition": {
+        "6h_rain_spinup_from_dry": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.003255181969305138,
+            "depth_rmse": 0.008740982040762901,
+            "depth_bias": 0.00080371149185036,
+            "x_momentum_mae": 2.33516867511854e-05,
+            "x_momentum_rmse": 6.202106315969204e-05,
+            "x_momentum_bias": 9.126987865531393e-06,
+            "y_momentum_mae": 2.321861650974218e-05,
+            "y_momentum_rmse": 4.8535655903631574e-05,
+            "y_momentum_bias": 8.161355127514173e-06,
+            "wet_depth_mae_m": 0.019744285445829683,
+            "wet_depth_mean_relative_error_pct": 31.060188033364035,
+            "wet_area_csi": 0.7927267439667273,
+            "wet_area_precision": 0.7521013145426888,
+            "wet_area_recall": 0.8847041896401637,
+            "anuga_water_volume_m3": 24176.20925564236,
+            "convlstm_water_volume_m3": 25984.55867682563,
+            "water_volume_relative_error_pct": 43.43940679389954,
+            "velocity_u_mae_m_s": 0.001682157813444395,
+            "velocity_v_mae_m_s": 0.0018035358119628984,
+            "velocity_vector_mae_m_s": 0.0027892700057815423,
+            "speed_mae_m_s": 0.002472932310245762
+          }
+        }
+      },
+      "infiltration_mean_mm_hr": {
+        "0.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.007959622191265225,
+            "depth_rmse": 0.02154212724417448,
+            "depth_bias": 0.002591666707303375,
+            "x_momentum_mae": 5.1543332422928266e-05,
+            "x_momentum_rmse": 0.00015872245057835244,
+            "x_momentum_bias": 2.3156568507450476e-05,
+            "y_momentum_mae": 4.5893753546503525e-05,
+            "y_momentum_rmse": 0.00011414260370656848,
+            "y_momentum_bias": 9.247534497565843e-06,
+            "wet_depth_mae_m": 0.02679161758472522,
+            "wet_depth_mean_relative_error_pct": 32.4013417561849,
+            "wet_area_csi": 0.597673579039569,
+            "wet_area_precision": 0.6128895055031359,
+            "wet_area_recall": 0.9594623435163739,
+            "anuga_water_volume_m3": 63529.002604166664,
+            "convlstm_water_volume_m3": 69360.24869791667,
+            "water_volume_relative_error_pct": 9.76981565297777,
+            "velocity_u_mae_m_s": 0.0026420611732949815,
+            "velocity_v_mae_m_s": 0.0025400813513745866,
+            "velocity_vector_mae_m_s": 0.004129302765553196,
+            "speed_mae_m_s": 0.003836495530170699
+          }
+        },
+        "10.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.00016473763632044816,
+            "depth_rmse": 0.0006683388104041418,
+            "depth_bias": 0.00015199456053475538,
+            "x_momentum_mae": 8.010466747994846e-06,
+            "x_momentum_rmse": 1.1123891908937367e-05,
+            "x_momentum_bias": 2.8670756175112424e-06,
+            "y_momentum_mae": 8.229885490133407e-06,
+            "y_momentum_rmse": 9.516745118768691e-06,
+            "y_momentum_bias": 6.733417270273397e-06,
+            "wet_area_csi": 1.0,
+            "anuga_water_volume_m3": 16.0625,
+            "convlstm_water_volume_m3": 358.0502573649089
+          }
+        },
+        "5.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.0016411860803297411,
+            "depth_rmse": 0.004012480067710082,
+            "depth_bias": -0.00033252679228705045,
+            "x_momentum_mae": 1.0501261082633087e-05,
+            "x_momentum_rmse": 1.6216846991786344e-05,
+            "x_momentum_bias": 1.3573194716324604e-06,
+            "y_momentum_mae": 1.553221049258961e-05,
+            "y_momentum_rmse": 2.1947618885557556e-05,
+            "y_momentum_bias": 8.503113614703276e-06,
+            "wet_area_csi": 0.7805066528606127,
+            "anuga_water_volume_m3": 8983.562662760416,
+            "convlstm_water_volume_m3": 8235.377075195312
+          }
+        }
+      },
+      "manning_mean": {
+        "0.030": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.007959622191265225,
+            "depth_rmse": 0.02154212724417448,
+            "depth_bias": 0.002591666707303375,
+            "x_momentum_mae": 5.1543332422928266e-05,
+            "x_momentum_rmse": 0.00015872245057835244,
+            "x_momentum_bias": 2.3156568507450476e-05,
+            "y_momentum_mae": 4.5893753546503525e-05,
+            "y_momentum_rmse": 0.00011414260370656848,
+            "y_momentum_bias": 9.247534497565843e-06,
+            "wet_depth_mae_m": 0.02679161758472522,
+            "wet_depth_mean_relative_error_pct": 32.4013417561849,
+            "wet_area_csi": 0.597673579039569,
+            "wet_area_precision": 0.6128895055031359,
+            "wet_area_recall": 0.9594623435163739,
+            "anuga_water_volume_m3": 63529.002604166664,
+            "convlstm_water_volume_m3": 69360.24869791667,
+            "water_volume_relative_error_pct": 9.76981565297777,
+            "velocity_u_mae_m_s": 0.0026420611732949815,
+            "velocity_v_mae_m_s": 0.0025400813513745866,
+            "velocity_vector_mae_m_s": 0.004129302765553196,
+            "speed_mae_m_s": 0.003836495530170699
+          }
+        },
+        "0.050": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.0016411860803297411,
+            "depth_rmse": 0.004012480067710082,
+            "depth_bias": -0.00033252679228705045,
+            "x_momentum_mae": 1.0501261082633087e-05,
+            "x_momentum_rmse": 1.6216846991786344e-05,
+            "x_momentum_bias": 1.3573194716324604e-06,
+            "y_momentum_mae": 1.553221049258961e-05,
+            "y_momentum_rmse": 2.1947618885557556e-05,
+            "y_momentum_bias": 8.503113614703276e-06,
+            "wet_area_csi": 0.7805066528606127,
+            "anuga_water_volume_m3": 8983.562662760416,
+            "convlstm_water_volume_m3": 8235.377075195312
+          }
+        },
+        "0.080": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.00016473763632044816,
+            "depth_rmse": 0.0006683388104041418,
+            "depth_bias": 0.00015199456053475538,
+            "x_momentum_mae": 8.010466747994846e-06,
+            "x_momentum_rmse": 1.1123891908937367e-05,
+            "x_momentum_bias": 2.8670756175112424e-06,
+            "y_momentum_mae": 8.229885490133407e-06,
+            "y_momentum_rmse": 9.516745118768691e-06,
+            "y_momentum_bias": 6.733417270273397e-06,
+            "wet_area_csi": 1.0,
+            "anuga_water_volume_m3": 16.0625,
+            "convlstm_water_volume_m3": 358.0502573649089
+          }
+        }
+      }
+    },
+    "5": {
+      "temporal_profile": {
+        "NASA_POWER_hourly": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.004941308968328586,
+            "depth_rmse": 0.012653910456315821,
+            "depth_bias": 0.0013280242197247895,
+            "x_momentum_mae": 5.751435881191153e-05,
+            "x_momentum_rmse": 8.497153986455587e-05,
+            "x_momentum_bias": 2.9498056651138744e-05,
+            "y_momentum_mae": 5.125672290281121e-05,
+            "y_momentum_rmse": 7.015277452006153e-05,
+            "y_momentum_bias": 1.9878679861701836e-05,
+            "wet_depth_mae_m": 0.03297756087373604,
+            "wet_depth_mean_relative_error_pct": 54.05451133034446,
+            "wet_area_csi": 0.66285117993655,
+            "wet_area_precision": 0.6532476270600218,
+            "wet_area_recall": 0.7584959661389409,
+            "anuga_water_volume_m3": 24491.042205810547,
+            "convlstm_water_volume_m3": 27479.095185173883,
+            "water_volume_relative_error_pct": 235.77496500001453,
+            "velocity_u_mae_m_s": 0.0024637232841500504,
+            "velocity_v_mae_m_s": 0.00257643203208731,
+            "velocity_vector_mae_m_s": 0.004034176765179092,
+            "speed_mae_m_s": 0.0033467374424534764
+          }
+        }
+      },
+      "spatial_pattern": {
+        "uniform_downscaled": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.004941308968328586,
+            "depth_rmse": 0.012653910456315821,
+            "depth_bias": 0.0013280242197247895,
+            "x_momentum_mae": 5.751435881191153e-05,
+            "x_momentum_rmse": 8.497153986455587e-05,
+            "x_momentum_bias": 2.9498056651138744e-05,
+            "y_momentum_mae": 5.125672290281121e-05,
+            "y_momentum_rmse": 7.015277452006153e-05,
+            "y_momentum_bias": 1.9878679861701836e-05,
+            "wet_depth_mae_m": 0.03297756087373604,
+            "wet_depth_mean_relative_error_pct": 54.05451133034446,
+            "wet_area_csi": 0.66285117993655,
+            "wet_area_precision": 0.6532476270600218,
+            "wet_area_recall": 0.7584959661389409,
+            "anuga_water_volume_m3": 24491.042205810547,
+            "convlstm_water_volume_m3": 27479.095185173883,
+            "water_volume_relative_error_pct": 235.77496500001453,
+            "velocity_u_mae_m_s": 0.0024637232841500504,
+            "velocity_v_mae_m_s": 0.00257643203208731,
+            "velocity_vector_mae_m_s": 0.004034176765179092,
+            "speed_mae_m_s": 0.0033467374424534764
+          }
+        }
+      },
+      "initial_condition": {
+        "6h_rain_spinup_from_dry": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.004941308968328586,
+            "depth_rmse": 0.012653910456315821,
+            "depth_bias": 0.0013280242197247895,
+            "x_momentum_mae": 5.751435881191153e-05,
+            "x_momentum_rmse": 8.497153986455587e-05,
+            "x_momentum_bias": 2.9498056651138744e-05,
+            "y_momentum_mae": 5.125672290281121e-05,
+            "y_momentum_rmse": 7.015277452006153e-05,
+            "y_momentum_bias": 1.9878679861701836e-05,
+            "wet_depth_mae_m": 0.03297756087373604,
+            "wet_depth_mean_relative_error_pct": 54.05451133034446,
+            "wet_area_csi": 0.66285117993655,
+            "wet_area_precision": 0.6532476270600218,
+            "wet_area_recall": 0.7584959661389409,
+            "anuga_water_volume_m3": 24491.042205810547,
+            "convlstm_water_volume_m3": 27479.095185173883,
+            "water_volume_relative_error_pct": 235.77496500001453,
+            "velocity_u_mae_m_s": 0.0024637232841500504,
+            "velocity_v_mae_m_s": 0.00257643203208731,
+            "velocity_vector_mae_m_s": 0.004034176765179092,
+            "speed_mae_m_s": 0.0033467374424534764
+          }
+        }
+      },
+      "infiltration_mean_mm_hr": {
+        "0.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.011219998511175314,
+            "depth_rmse": 0.02969258775313695,
+            "depth_bias": 0.00299209735627907,
+            "x_momentum_mae": 0.00012155849617556669,
+            "x_momentum_rmse": 0.00018929332388021672,
+            "x_momentum_bias": 6.796825982746668e-05,
+            "y_momentum_mae": 8.728877158622102e-05,
+            "y_momentum_rmse": 0.00013315168810853115,
+            "y_momentum_bias": 9.853450592345325e-06,
+            "wet_depth_mae_m": 0.04431490662197272,
+            "wet_depth_mean_relative_error_pct": 53.29705492655436,
+            "wet_area_csi": 0.5901081347497672,
+            "wet_area_precision": 0.6577089421091495,
+            "wet_area_recall": 0.8502775266266834,
+            "anuga_water_volume_m3": 64220.001302083336,
+            "convlstm_water_volume_m3": 70952.21614583333,
+            "water_volume_relative_error_pct": 11.459669311802633,
+            "velocity_u_mae_m_s": 0.003415188693907112,
+            "velocity_v_mae_m_s": 0.0031341193437886736,
+            "velocity_vector_mae_m_s": 0.005218936867701511,
+            "speed_mae_m_s": 0.00462869453864793
+          }
+        },
+        "10.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.000974533842963865,
+            "depth_rmse": 0.0014428309659706429,
+            "depth_bias": 0.0009683122977245754,
+            "x_momentum_mae": 1.910607003689317e-05,
+            "x_momentum_rmse": 2.3426403458870482e-05,
+            "x_momentum_bias": 7.902899331687271e-06,
+            "y_momentum_mae": 2.662705704400044e-05,
+            "y_momentum_rmse": 3.015029453005506e-05,
+            "y_momentum_bias": 2.1734745511518366e-05,
+            "wet_area_csi": 0.8333333333333334,
+            "anuga_water_volume_m3": 80.31248982747395,
+            "convlstm_water_volume_m3": 2259.0151189168296
+          }
+        },
+        "5.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.002629394550846579,
+            "depth_rmse": 0.006826312649839868,
+            "depth_bias": 2.36630051707228e-05,
+            "x_momentum_mae": 3.187851022327474e-05,
+            "x_momentum_rmse": 4.219489225458043e-05,
+            "x_momentum_bias": 1.2623010794262276e-05,
+            "y_momentum_mae": 3.985434007821217e-05,
+            "y_momentum_rmse": 4.715634092159841e-05,
+            "y_momentum_bias": 2.8047843481241824e-05,
+            "wet_area_csi": 0.5651120717265495,
+            "anuga_water_volume_m3": 9172.812825520834,
+            "convlstm_water_volume_m3": 9226.054290771484
+          }
+        }
+      },
+      "manning_mean": {
+        "0.030": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.011219998511175314,
+            "depth_rmse": 0.02969258775313695,
+            "depth_bias": 0.00299209735627907,
+            "x_momentum_mae": 0.00012155849617556669,
+            "x_momentum_rmse": 0.00018929332388021672,
+            "x_momentum_bias": 6.796825982746668e-05,
+            "y_momentum_mae": 8.728877158622102e-05,
+            "y_momentum_rmse": 0.00013315168810853115,
+            "y_momentum_bias": 9.853450592345325e-06,
+            "wet_depth_mae_m": 0.04431490662197272,
+            "wet_depth_mean_relative_error_pct": 53.29705492655436,
+            "wet_area_csi": 0.5901081347497672,
+            "wet_area_precision": 0.6577089421091495,
+            "wet_area_recall": 0.8502775266266834,
+            "anuga_water_volume_m3": 64220.001302083336,
+            "convlstm_water_volume_m3": 70952.21614583333,
+            "water_volume_relative_error_pct": 11.459669311802633,
+            "velocity_u_mae_m_s": 0.003415188693907112,
+            "velocity_v_mae_m_s": 0.0031341193437886736,
+            "velocity_vector_mae_m_s": 0.005218936867701511,
+            "speed_mae_m_s": 0.00462869453864793
+          }
+        },
+        "0.050": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.002629394550846579,
+            "depth_rmse": 0.006826312649839868,
+            "depth_bias": 2.36630051707228e-05,
+            "x_momentum_mae": 3.187851022327474e-05,
+            "x_momentum_rmse": 4.219489225458043e-05,
+            "x_momentum_bias": 1.2623010794262276e-05,
+            "y_momentum_mae": 3.985434007821217e-05,
+            "y_momentum_rmse": 4.715634092159841e-05,
+            "y_momentum_bias": 2.8047843481241824e-05,
+            "wet_area_csi": 0.5651120717265495,
+            "anuga_water_volume_m3": 9172.812825520834,
+            "convlstm_water_volume_m3": 9226.054290771484
+          }
+        },
+        "0.080": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.000974533842963865,
+            "depth_rmse": 0.0014428309659706429,
+            "depth_bias": 0.0009683122977245754,
+            "x_momentum_mae": 1.910607003689317e-05,
+            "x_momentum_rmse": 2.3426403458870482e-05,
+            "x_momentum_bias": 7.902899331687271e-06,
+            "y_momentum_mae": 2.662705704400044e-05,
+            "y_momentum_rmse": 3.015029453005506e-05,
+            "y_momentum_bias": 2.1734745511518366e-05,
+            "wet_area_csi": 0.8333333333333334,
+            "anuga_water_volume_m3": 80.31248982747395,
+            "convlstm_water_volume_m3": 2259.0151189168296
+          }
+        }
+      }
+    },
+    "15": {
+      "temporal_profile": {
+        "NASA_POWER_hourly": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.008423351600665936,
+            "depth_rmse": 0.018987476631688576,
+            "depth_bias": -8.988846538058069e-05,
+            "x_momentum_mae": 8.712068802196882e-05,
+            "x_momentum_rmse": 0.00012852040577450275,
+            "x_momentum_bias": 2.5771495150668972e-05,
+            "y_momentum_mae": 7.998735585109291e-05,
+            "y_momentum_rmse": 0.00010873716918366781,
+            "y_momentum_bias": 2.9399943214356325e-05,
+            "wet_depth_mae_m": 0.047381933270530266,
+            "wet_depth_mean_relative_error_pct": 77.67041882601652,
+            "wet_area_csi": 0.5145477665353603,
+            "wet_area_precision": 0.5318986608076007,
+            "wet_area_recall": 0.6049580986670575,
+            "anuga_water_volume_m3": 25278.12472873264,
+            "convlstm_water_volume_m3": 25075.87569088406,
+            "water_volume_relative_error_pct": 365.8934124376138,
+            "velocity_u_mae_m_s": 0.003644350778565488,
+            "velocity_v_mae_m_s": 0.0032629665167240255,
+            "velocity_vector_mae_m_s": 0.0054678117687051945,
+            "speed_mae_m_s": 0.00444541429169476
+          }
+        }
+      },
+      "spatial_pattern": {
+        "uniform_downscaled": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.008423351600665936,
+            "depth_rmse": 0.018987476631688576,
+            "depth_bias": -8.988846538058069e-05,
+            "x_momentum_mae": 8.712068802196882e-05,
+            "x_momentum_rmse": 0.00012852040577450275,
+            "x_momentum_bias": 2.5771495150668972e-05,
+            "y_momentum_mae": 7.998735585109291e-05,
+            "y_momentum_rmse": 0.00010873716918366781,
+            "y_momentum_bias": 2.9399943214356325e-05,
+            "wet_depth_mae_m": 0.047381933270530266,
+            "wet_depth_mean_relative_error_pct": 77.67041882601652,
+            "wet_area_csi": 0.5145477665353603,
+            "wet_area_precision": 0.5318986608076007,
+            "wet_area_recall": 0.6049580986670575,
+            "anuga_water_volume_m3": 25278.12472873264,
+            "convlstm_water_volume_m3": 25075.87569088406,
+            "water_volume_relative_error_pct": 365.8934124376138,
+            "velocity_u_mae_m_s": 0.003644350778565488,
+            "velocity_v_mae_m_s": 0.0032629665167240255,
+            "velocity_vector_mae_m_s": 0.0054678117687051945,
+            "speed_mae_m_s": 0.00444541429169476
+          }
+        }
+      },
+      "initial_condition": {
+        "6h_rain_spinup_from_dry": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.008423351600665936,
+            "depth_rmse": 0.018987476631688576,
+            "depth_bias": -8.988846538058069e-05,
+            "x_momentum_mae": 8.712068802196882e-05,
+            "x_momentum_rmse": 0.00012852040577450275,
+            "x_momentum_bias": 2.5771495150668972e-05,
+            "y_momentum_mae": 7.998735585109291e-05,
+            "y_momentum_rmse": 0.00010873716918366781,
+            "y_momentum_bias": 2.9399943214356325e-05,
+            "wet_depth_mae_m": 0.047381933270530266,
+            "wet_depth_mean_relative_error_pct": 77.67041882601652,
+            "wet_area_csi": 0.5145477665353603,
+            "wet_area_precision": 0.5318986608076007,
+            "wet_area_recall": 0.6049580986670575,
+            "anuga_water_volume_m3": 25278.12472873264,
+            "convlstm_water_volume_m3": 25075.87569088406,
+            "water_volume_relative_error_pct": 365.8934124376138,
+            "velocity_u_mae_m_s": 0.003644350778565488,
+            "velocity_v_mae_m_s": 0.0032629665167240255,
+            "velocity_vector_mae_m_s": 0.0054678117687051945,
+            "speed_mae_m_s": 0.00444541429169476
+          }
+        }
+      },
+      "infiltration_mean_mm_hr": {
+        "0.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.016179643105715513,
+            "depth_rmse": 0.04039782347778479,
+            "depth_bias": -0.005262079881504178,
+            "x_momentum_mae": 0.00018402147785915682,
+            "x_momentum_rmse": 0.0002807664980840248,
+            "x_momentum_bias": 6.904578185640275e-05,
+            "y_momentum_mae": 0.00013881548390296908,
+            "y_momentum_rmse": 0.00020486297338114431,
+            "y_momentum_bias": 1.1915264773657933e-05,
+            "wet_depth_mae_m": 0.06248222291469574,
+            "wet_depth_mean_relative_error_pct": 73.70079739888509,
+            "wet_area_csi": 0.4765931674805466,
+            "wet_area_precision": 0.5830744691929194,
+            "wet_area_recall": 0.7215717772478897,
+            "anuga_water_volume_m3": 65947.49934895833,
+            "convlstm_water_volume_m3": 54107.819010416664,
+            "water_volume_relative_error_pct": 22.474882706572217,
+            "velocity_u_mae_m_s": 0.004534039840412636,
+            "velocity_v_mae_m_s": 0.003940193758656581,
+            "velocity_vector_mae_m_s": 0.0067392078538735705,
+            "speed_mae_m_s": 0.005870988204454382
+          }
+        },
+        "10.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.004086811625408397,
+            "depth_rmse": 0.005070247978437692,
+            "depth_bias": 0.004071044334220157,
+            "x_momentum_mae": 2.1961780627558863e-05,
+            "x_momentum_rmse": 2.8292403233839043e-05,
+            "x_momentum_bias": 6.289332191045105e-06,
+            "y_momentum_mae": 4.469210822814299e-05,
+            "y_momentum_rmse": 4.997096433119926e-05,
+            "y_momentum_bias": 3.8497873608397036e-05,
+            "wet_area_csi": 0.8333333333333334,
+            "anuga_water_volume_m3": 240.9375,
+            "convlstm_water_volume_m3": 9400.787635803223
+          }
+        },
+        "5.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.005003600070873897,
+            "depth_rmse": 0.011494358438843241,
+            "depth_bias": 0.0009213701511422793,
+            "x_momentum_mae": 5.537880557919076e-05,
+            "x_momentum_rmse": 7.650231600564439e-05,
+            "x_momentum_bias": 1.9793714045590605e-06,
+            "y_momentum_mae": 5.6454475422166674e-05,
+            "y_momentum_rmse": 7.137756983865984e-05,
+            "y_momentum_bias": 3.7786691261014006e-05,
+            "wet_area_csi": 0.23371679879220078,
+            "wet_area_precision": 0.5693726292235487,
+            "anuga_water_volume_m3": 9645.937337239584,
+            "convlstm_water_volume_m3": 11719.020426432291
+          }
+        }
+      },
+      "manning_mean": {
+        "0.030": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.016179643105715513,
+            "depth_rmse": 0.04039782347778479,
+            "depth_bias": -0.005262079881504178,
+            "x_momentum_mae": 0.00018402147785915682,
+            "x_momentum_rmse": 0.0002807664980840248,
+            "x_momentum_bias": 6.904578185640275e-05,
+            "y_momentum_mae": 0.00013881548390296908,
+            "y_momentum_rmse": 0.00020486297338114431,
+            "y_momentum_bias": 1.1915264773657933e-05,
+            "wet_depth_mae_m": 0.06248222291469574,
+            "wet_depth_mean_relative_error_pct": 73.70079739888509,
+            "wet_area_csi": 0.4765931674805466,
+            "wet_area_precision": 0.5830744691929194,
+            "wet_area_recall": 0.7215717772478897,
+            "anuga_water_volume_m3": 65947.49934895833,
+            "convlstm_water_volume_m3": 54107.819010416664,
+            "water_volume_relative_error_pct": 22.474882706572217,
+            "velocity_u_mae_m_s": 0.004534039840412636,
+            "velocity_v_mae_m_s": 0.003940193758656581,
+            "velocity_vector_mae_m_s": 0.0067392078538735705,
+            "speed_mae_m_s": 0.005870988204454382
+          }
+        },
+        "0.050": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.005003600070873897,
+            "depth_rmse": 0.011494358438843241,
+            "depth_bias": 0.0009213701511422793,
+            "x_momentum_mae": 5.537880557919076e-05,
+            "x_momentum_rmse": 7.650231600564439e-05,
+            "x_momentum_bias": 1.9793714045590605e-06,
+            "y_momentum_mae": 5.6454475422166674e-05,
+            "y_momentum_rmse": 7.137756983865984e-05,
+            "y_momentum_bias": 3.7786691261014006e-05,
+            "wet_area_csi": 0.23371679879220078,
+            "wet_area_precision": 0.5693726292235487,
+            "anuga_water_volume_m3": 9645.937337239584,
+            "convlstm_water_volume_m3": 11719.020426432291
+          }
+        },
+        "0.080": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.004086811625408397,
+            "depth_rmse": 0.005070247978437692,
+            "depth_bias": 0.004071044334220157,
+            "x_momentum_mae": 2.1961780627558863e-05,
+            "x_momentum_rmse": 2.8292403233839043e-05,
+            "x_momentum_bias": 6.289332191045105e-06,
+            "y_momentum_mae": 4.469210822814299e-05,
+            "y_momentum_rmse": 4.997096433119926e-05,
+            "y_momentum_bias": 3.8497873608397036e-05,
+            "wet_area_csi": 0.8333333333333334,
+            "anuga_water_volume_m3": 240.9375,
+            "convlstm_water_volume_m3": 9400.787635803223
+          }
+        }
+      }
+    },
+    "30": {
+      "temporal_profile": {
+        "NASA_POWER_hourly": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.013938209591287887,
+            "depth_rmse": 0.03231332727268131,
+            "depth_bias": -0.00025951063637168973,
+            "x_momentum_mae": 0.00013342819662890784,
+            "x_momentum_rmse": 0.00019801755989748117,
+            "x_momentum_bias": 2.24804374384904e-05,
+            "y_momentum_mae": 0.0001166543116950278,
+            "y_momentum_rmse": 0.00016686933410407315,
+            "y_momentum_bias": 3.9073900893527025e-05,
+            "wet_depth_mae_m": 0.07414411349842946,
+            "wet_depth_mean_relative_error_pct": 127.43043454488118,
+            "wet_area_csi": 0.44885961487122156,
+            "wet_area_precision": 0.4549432367711722,
+            "wet_area_recall": 0.5000420187634158,
+            "anuga_water_volume_m3": 26458.749430338543,
+            "convlstm_water_volume_m3": 25874.85095553928,
+            "water_volume_relative_error_pct": 383.2174477778968,
+            "velocity_u_mae_m_s": 0.005404407430129747,
+            "velocity_v_mae_m_s": 0.004970671521732584,
+            "velocity_vector_mae_m_s": 0.008145831156677255,
+            "speed_mae_m_s": 0.006431080750189722
+          }
+        }
+      },
+      "spatial_pattern": {
+        "uniform_downscaled": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.013938209591287887,
+            "depth_rmse": 0.03231332727268131,
+            "depth_bias": -0.00025951063637168973,
+            "x_momentum_mae": 0.00013342819662890784,
+            "x_momentum_rmse": 0.00019801755989748117,
+            "x_momentum_bias": 2.24804374384904e-05,
+            "y_momentum_mae": 0.0001166543116950278,
+            "y_momentum_rmse": 0.00016686933410407315,
+            "y_momentum_bias": 3.9073900893527025e-05,
+            "wet_depth_mae_m": 0.07414411349842946,
+            "wet_depth_mean_relative_error_pct": 127.43043454488118,
+            "wet_area_csi": 0.44885961487122156,
+            "wet_area_precision": 0.4549432367711722,
+            "wet_area_recall": 0.5000420187634158,
+            "anuga_water_volume_m3": 26458.749430338543,
+            "convlstm_water_volume_m3": 25874.85095553928,
+            "water_volume_relative_error_pct": 383.2174477778968,
+            "velocity_u_mae_m_s": 0.005404407430129747,
+            "velocity_v_mae_m_s": 0.004970671521732584,
+            "velocity_vector_mae_m_s": 0.008145831156677255,
+            "speed_mae_m_s": 0.006431080750189722
+          }
+        }
+      },
+      "initial_condition": {
+        "6h_rain_spinup_from_dry": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.013938209591287887,
+            "depth_rmse": 0.03231332727268131,
+            "depth_bias": -0.00025951063637168973,
+            "x_momentum_mae": 0.00013342819662890784,
+            "x_momentum_rmse": 0.00019801755989748117,
+            "x_momentum_bias": 2.24804374384904e-05,
+            "y_momentum_mae": 0.0001166543116950278,
+            "y_momentum_rmse": 0.00016686933410407315,
+            "y_momentum_bias": 3.9073900893527025e-05,
+            "wet_depth_mae_m": 0.07414411349842946,
+            "wet_depth_mean_relative_error_pct": 127.43043454488118,
+            "wet_area_csi": 0.44885961487122156,
+            "wet_area_precision": 0.4549432367711722,
+            "wet_area_recall": 0.5000420187634158,
+            "anuga_water_volume_m3": 26458.749430338543,
+            "convlstm_water_volume_m3": 25874.85095553928,
+            "water_volume_relative_error_pct": 383.2174477778968,
+            "velocity_u_mae_m_s": 0.005404407430129747,
+            "velocity_v_mae_m_s": 0.004970671521732584,
+            "velocity_vector_mae_m_s": 0.008145831156677255,
+            "speed_mae_m_s": 0.006431080750189722
+          }
+        }
+      },
+      "infiltration_mean_mm_hr": {
+        "0.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.025666821437577408,
+            "depth_rmse": 0.06476822743813197,
+            "depth_bias": -0.011152930868168673,
+            "x_momentum_mae": 0.00026512846428280074,
+            "x_momentum_rmse": 0.0003988445144689952,
+            "x_momentum_bias": 7.73962104479627e-05,
+            "y_momentum_mae": 0.00020616202527889982,
+            "y_momentum_rmse": 0.0002987875826268767,
+            "y_momentum_bias": 1.801912276278017e-05,
+            "wet_depth_mae_m": 0.10480128104488055,
+            "wet_depth_mean_relative_error_pct": 92.99775314331055,
+            "wet_area_csi": 0.3516601252998252,
+            "wet_area_precision": 0.4853005466344622,
+            "wet_area_recall": 0.5659154498414597,
+            "anuga_water_volume_m3": 68538.74869791667,
+            "convlstm_water_volume_m3": 43444.654296875,
+            "water_volume_relative_error_pct": 40.73597554091139,
+            "velocity_u_mae_m_s": 0.006344591112186511,
+            "velocity_v_mae_m_s": 0.005833995644934475,
+            "velocity_vector_mae_m_s": 0.009654315654188395,
+            "speed_mae_m_s": 0.008138834421212474
+          }
+        },
+        "10.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.008068644178517085,
+            "depth_rmse": 0.013081405059589693,
+            "depth_bias": 0.00799600225946051,
+            "x_momentum_mae": 4.040401806075048e-05,
+            "x_momentum_rmse": 5.9085167019172026e-05,
+            "x_momentum_bias": -7.2379603655766305e-06,
+            "y_momentum_mae": 6.515605196000251e-05,
+            "y_momentum_rmse": 8.76701944131734e-05,
+            "y_momentum_bias": 5.5417436935082755e-05,
+            "wet_area_csi": 0.8349103094815691,
+            "anuga_water_volume_m3": 481.875,
+            "convlstm_water_volume_m3": 18472.88091023763
+          }
+        },
+        "5.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.008079163157769168,
+            "depth_rmse": 0.019090349320322275,
+            "depth_bias": 0.002378396699593092,
+            "x_momentum_mae": 9.475210754317231e-05,
+            "x_momentum_rmse": 0.00013612299820427629,
+            "x_momentum_bias": -2.7169377669148767e-06,
+            "y_momentum_mae": 7.864485784618107e-05,
+            "y_momentum_rmse": 0.00011415022527216934,
+            "y_momentum_bias": 4.378514298271815e-05,
+            "wet_area_csi": 0.16000840983227055,
+            "wet_area_precision": 0.49883189043286075,
+            "anuga_water_volume_m3": 10355.624593098959,
+            "convlstm_water_volume_m3": 15707.017659505209
+          }
+        }
+      },
+      "manning_mean": {
+        "0.030": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.025666821437577408,
+            "depth_rmse": 0.06476822743813197,
+            "depth_bias": -0.011152930868168673,
+            "x_momentum_mae": 0.00026512846428280074,
+            "x_momentum_rmse": 0.0003988445144689952,
+            "x_momentum_bias": 7.73962104479627e-05,
+            "y_momentum_mae": 0.00020616202527889982,
+            "y_momentum_rmse": 0.0002987875826268767,
+            "y_momentum_bias": 1.801912276278017e-05,
+            "wet_depth_mae_m": 0.10480128104488055,
+            "wet_depth_mean_relative_error_pct": 92.99775314331055,
+            "wet_area_csi": 0.3516601252998252,
+            "wet_area_precision": 0.4853005466344622,
+            "wet_area_recall": 0.5659154498414597,
+            "anuga_water_volume_m3": 68538.74869791667,
+            "convlstm_water_volume_m3": 43444.654296875,
+            "water_volume_relative_error_pct": 40.73597554091139,
+            "velocity_u_mae_m_s": 0.006344591112186511,
+            "velocity_v_mae_m_s": 0.005833995644934475,
+            "velocity_vector_mae_m_s": 0.009654315654188395,
+            "speed_mae_m_s": 0.008138834421212474
+          }
+        },
+        "0.050": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.008079163157769168,
+            "depth_rmse": 0.019090349320322275,
+            "depth_bias": 0.002378396699593092,
+            "x_momentum_mae": 9.475210754317231e-05,
+            "x_momentum_rmse": 0.00013612299820427629,
+            "x_momentum_bias": -2.7169377669148767e-06,
+            "y_momentum_mae": 7.864485784618107e-05,
+            "y_momentum_rmse": 0.00011415022527216934,
+            "y_momentum_bias": 4.378514298271815e-05,
+            "wet_area_csi": 0.16000840983227055,
+            "wet_area_precision": 0.49883189043286075,
+            "anuga_water_volume_m3": 10355.624593098959,
+            "convlstm_water_volume_m3": 15707.017659505209
+          }
+        },
+        "0.080": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.008068644178517085,
+            "depth_rmse": 0.013081405059589693,
+            "depth_bias": 0.00799600225946051,
+            "x_momentum_mae": 4.040401806075048e-05,
+            "x_momentum_rmse": 5.9085167019172026e-05,
+            "x_momentum_bias": -7.2379603655766305e-06,
+            "y_momentum_mae": 6.515605196000251e-05,
+            "y_momentum_rmse": 8.76701944131734e-05,
+            "y_momentum_bias": 5.5417436935082755e-05,
+            "wet_area_csi": 0.8349103094815691,
+            "anuga_water_volume_m3": 481.875,
+            "convlstm_water_volume_m3": 18472.88091023763
+          }
+        }
+      }
+    },
+    "60": {
+      "temporal_profile": {
+        "NASA_POWER_hourly": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.01954221305519847,
+            "depth_rmse": 0.04551162576859093,
+            "depth_bias": -7.604538445270414e-05,
+            "x_momentum_mae": 0.00021133667698652262,
+            "x_momentum_rmse": 0.0003018785392264868,
+            "x_momentum_bias": 3.651660027672834e-05,
+            "y_momentum_mae": 0.0001734121500097293,
+            "y_momentum_rmse": 0.0002458514966039931,
+            "y_momentum_bias": 3.4997039910599094e-05,
+            "wet_depth_mae_m": 0.09703566040843725,
+            "wet_depth_mean_relative_error_pct": 127.16007486979167,
+            "wet_area_csi": 0.3816174451825139,
+            "wet_area_precision": 0.31432735833919906,
+            "wet_area_recall": 0.3562118607019013,
+            "anuga_water_volume_m3": 28820.000298394098,
+            "convlstm_water_volume_m3": 28648.898512098523,
+            "water_volume_relative_error_pct": 241.4779611725661,
+            "velocity_u_mae_m_s": 0.009251249954104424,
+            "velocity_v_mae_m_s": 0.008067334167814503,
+            "velocity_vector_mae_m_s": 0.01362054143100977,
+            "speed_mae_m_s": 0.011049909245533248
+          }
+        }
+      },
+      "spatial_pattern": {
+        "uniform_downscaled": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.01954221305519847,
+            "depth_rmse": 0.04551162576859093,
+            "depth_bias": -7.604538445270414e-05,
+            "x_momentum_mae": 0.00021133667698652262,
+            "x_momentum_rmse": 0.0003018785392264868,
+            "x_momentum_bias": 3.651660027672834e-05,
+            "y_momentum_mae": 0.0001734121500097293,
+            "y_momentum_rmse": 0.0002458514966039931,
+            "y_momentum_bias": 3.4997039910599094e-05,
+            "wet_depth_mae_m": 0.09703566040843725,
+            "wet_depth_mean_relative_error_pct": 127.16007486979167,
+            "wet_area_csi": 0.3816174451825139,
+            "wet_area_precision": 0.31432735833919906,
+            "wet_area_recall": 0.3562118607019013,
+            "anuga_water_volume_m3": 28820.000298394098,
+            "convlstm_water_volume_m3": 28648.898512098523,
+            "water_volume_relative_error_pct": 241.4779611725661,
+            "velocity_u_mae_m_s": 0.009251249954104424,
+            "velocity_v_mae_m_s": 0.008067334167814503,
+            "velocity_vector_mae_m_s": 0.01362054143100977,
+            "speed_mae_m_s": 0.011049909245533248
+          }
+        }
+      },
+      "initial_condition": {
+        "6h_rain_spinup_from_dry": {
+          "scenario_count": 18,
+          "metrics": {
+            "depth_mae": 0.01954221305519847,
+            "depth_rmse": 0.04551162576859093,
+            "depth_bias": -7.604538445270414e-05,
+            "x_momentum_mae": 0.00021133667698652262,
+            "x_momentum_rmse": 0.0003018785392264868,
+            "x_momentum_bias": 3.651660027672834e-05,
+            "y_momentum_mae": 0.0001734121500097293,
+            "y_momentum_rmse": 0.0002458514966039931,
+            "y_momentum_bias": 3.4997039910599094e-05,
+            "wet_depth_mae_m": 0.09703566040843725,
+            "wet_depth_mean_relative_error_pct": 127.16007486979167,
+            "wet_area_csi": 0.3816174451825139,
+            "wet_area_precision": 0.31432735833919906,
+            "wet_area_recall": 0.3562118607019013,
+            "anuga_water_volume_m3": 28820.000298394098,
+            "convlstm_water_volume_m3": 28648.898512098523,
+            "water_volume_relative_error_pct": 241.4779611725661,
+            "velocity_u_mae_m_s": 0.009251249954104424,
+            "velocity_v_mae_m_s": 0.008067334167814503,
+            "velocity_vector_mae_m_s": 0.01362054143100977,
+            "speed_mae_m_s": 0.011049909245533248
+          }
+        }
+      },
+      "infiltration_mean_mm_hr": {
+        "0.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.03819414476553599,
+            "depth_rmse": 0.09475779285033543,
+            "depth_bias": -0.012800668958031261,
+            "x_momentum_mae": 0.00041354456334374845,
+            "x_momentum_rmse": 0.000598338374402374,
+            "x_momentum_bias": 0.000105285171836537,
+            "y_momentum_mae": 0.0003202033500807981,
+            "y_momentum_rmse": 0.000447768674348481,
+            "y_momentum_bias": 2.130044822479249e-05,
+            "wet_depth_mae_m": 0.14341778804858527,
+            "wet_depth_mean_relative_error_pct": 108.19863891601562,
+            "wet_area_csi": 0.2053753324485693,
+            "wet_area_precision": 0.28994554471074047,
+            "wet_area_recall": 0.41491436319887676,
+            "anuga_water_volume_m3": 73721.25065104167,
+            "convlstm_water_volume_m3": 44919.745768229164,
+            "water_volume_relative_error_pct": 39.04289642765061,
+            "velocity_u_mae_m_s": 0.011564440404375395,
+            "velocity_v_mae_m_s": 0.009457620714480678,
+            "velocity_vector_mae_m_s": 0.016669330031921465,
+            "speed_mae_m_s": 0.014083037928988537
+          }
+        },
+        "10.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.009300330972716134,
+            "depth_rmse": 0.016209194776214037,
+            "depth_bias": 0.008967912143513482,
+            "x_momentum_mae": 7.515358856835519e-05,
+            "x_momentum_rmse": 0.00010339444891845535,
+            "x_momentum_bias": -5.455771467192487e-06,
+            "y_momentum_mae": 8.247589994425653e-05,
+            "y_momentum_rmse": 0.00011644587205713226,
+            "y_momentum_bias": 3.916978499773904e-05,
+            "wet_area_csi": 0.8433309809456598,
+            "anuga_water_volume_m3": 963.75,
+            "convlstm_water_volume_m3": 21141.553314208984
+          }
+        },
+        "5.000": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.011132163427343281,
+            "depth_rmse": 0.0255678896792233,
+            "depth_bias": 0.0036046206611596667,
+            "x_momentum_mae": 0.00014531187904746426,
+            "x_momentum_rmse": 0.00020390279435863098,
+            "x_momentum_bias": 9.720400460840514e-06,
+            "y_momentum_mae": 0.00011755720000413324,
+            "y_momentum_rmse": 0.00017333994340636613,
+            "y_momentum_bias": 4.452088650926574e-05,
+            "wet_area_csi": 0.09614602215331265,
+            "wet_area_precision": 0.3806573696176567,
+            "anuga_water_volume_m3": 11775.000244140625,
+            "convlstm_water_volume_m3": 19885.396453857422
+          }
+        }
+      },
+      "manning_mean": {
+        "0.030": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.03819414476553599,
+            "depth_rmse": 0.09475779285033543,
+            "depth_bias": -0.012800668958031261,
+            "x_momentum_mae": 0.00041354456334374845,
+            "x_momentum_rmse": 0.000598338374402374,
+            "x_momentum_bias": 0.000105285171836537,
+            "y_momentum_mae": 0.0003202033500807981,
+            "y_momentum_rmse": 0.000447768674348481,
+            "y_momentum_bias": 2.130044822479249e-05,
+            "wet_depth_mae_m": 0.14341778804858527,
+            "wet_depth_mean_relative_error_pct": 108.19863891601562,
+            "wet_area_csi": 0.2053753324485693,
+            "wet_area_precision": 0.28994554471074047,
+            "wet_area_recall": 0.41491436319887676,
+            "anuga_water_volume_m3": 73721.25065104167,
+            "convlstm_water_volume_m3": 44919.745768229164,
+            "water_volume_relative_error_pct": 39.04289642765061,
+            "velocity_u_mae_m_s": 0.011564440404375395,
+            "velocity_v_mae_m_s": 0.009457620714480678,
+            "velocity_vector_mae_m_s": 0.016669330031921465,
+            "speed_mae_m_s": 0.014083037928988537
+          }
+        },
+        "0.050": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.011132163427343281,
+            "depth_rmse": 0.0255678896792233,
+            "depth_bias": 0.0036046206611596667,
+            "x_momentum_mae": 0.00014531187904746426,
+            "x_momentum_rmse": 0.00020390279435863098,
+            "x_momentum_bias": 9.720400460840514e-06,
+            "y_momentum_mae": 0.00011755720000413324,
+            "y_momentum_rmse": 0.00017333994340636613,
+            "y_momentum_bias": 4.452088650926574e-05,
+            "wet_area_csi": 0.09614602215331265,
+            "wet_area_precision": 0.3806573696176567,
+            "anuga_water_volume_m3": 11775.000244140625,
+            "convlstm_water_volume_m3": 19885.396453857422
+          }
+        },
+        "0.080": {
+          "scenario_count": 6,
+          "metrics": {
+            "depth_mae": 0.009300330972716134,
+            "depth_rmse": 0.016209194776214037,
+            "depth_bias": 0.008967912143513482,
+            "x_momentum_mae": 7.515358856835519e-05,
+            "x_momentum_rmse": 0.00010339444891845535,
+            "x_momentum_bias": -5.455771467192487e-06,
+            "y_momentum_mae": 8.247589994425653e-05,
+            "y_momentum_rmse": 0.00011644587205713226,
+            "y_momentum_bias": 3.916978499773904e-05,
+            "wet_area_csi": 0.8433309809456598,
+            "anuga_water_volume_m3": 963.75,
+            "convlstm_water_volume_m3": 21141.553314208984
+          }
+        }
+      }
+    }
+  },
+  "scenario_parameters": [
+    {
+      "scenario_index": 54,
+      "scenario_id": 54,
+      "scenario_name": "power_2024060306_n0.03",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273
+      ],
+      "infiltration_min_mm_hr": 0.0,
+      "infiltration_mean_mm_hr": 0.0,
+      "infiltration_max_mm_hr": 0.0,
+      "manning_min": 0.029999999329447746,
+      "manning_mean": 0.029999997466802597,
+      "manning_max": 0.029999999329447746,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 55,
+      "scenario_id": 55,
+      "scenario_name": "power_2024060306_n0.05",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273
+      ],
+      "infiltration_min_mm_hr": 5.0,
+      "infiltration_mean_mm_hr": 5.0,
+      "infiltration_max_mm_hr": 5.0,
+      "manning_min": 0.05000000074505806,
+      "manning_mean": 0.05000000447034836,
+      "manning_max": 0.05000000074505806,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 56,
+      "scenario_id": 56,
+      "scenario_name": "power_2024060306_n0.08",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273,
+        3.2899999618530273
+      ],
+      "infiltration_min_mm_hr": 10.0,
+      "infiltration_mean_mm_hr": 10.0,
+      "infiltration_max_mm_hr": 10.0,
+      "manning_min": 0.07999999821186066,
+      "manning_mean": 0.07999999076128006,
+      "manning_max": 0.07999999821186066,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 57,
+      "scenario_id": 57,
+      "scenario_name": "power_2024061706_n0.03",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727
+      ],
+      "infiltration_min_mm_hr": 0.0,
+      "infiltration_mean_mm_hr": 0.0,
+      "infiltration_max_mm_hr": 0.0,
+      "manning_min": 0.029999999329447746,
+      "manning_mean": 0.029999997466802597,
+      "manning_max": 0.029999999329447746,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 58,
+      "scenario_id": 58,
+      "scenario_name": "power_2024061706_n0.05",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727
+      ],
+      "infiltration_min_mm_hr": 5.0,
+      "infiltration_mean_mm_hr": 5.0,
+      "infiltration_max_mm_hr": 5.0,
+      "manning_min": 0.05000000074505806,
+      "manning_mean": 0.05000000447034836,
+      "manning_max": 0.05000000074505806,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 59,
+      "scenario_id": 59,
+      "scenario_name": "power_2024061706_n0.08",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727,
+        1.4600000381469727
+      ],
+      "infiltration_min_mm_hr": 10.0,
+      "infiltration_mean_mm_hr": 10.0,
+      "infiltration_max_mm_hr": 10.0,
+      "manning_min": 0.07999999821186066,
+      "manning_mean": 0.07999999076128006,
+      "manning_max": 0.07999999821186066,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 60,
+      "scenario_id": 60,
+      "scenario_name": "power_2024061808_n0.03",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219
+      ],
+      "infiltration_min_mm_hr": 0.0,
+      "infiltration_mean_mm_hr": 0.0,
+      "infiltration_max_mm_hr": 0.0,
+      "manning_min": 0.029999999329447746,
+      "manning_mean": 0.029999997466802597,
+      "manning_max": 0.029999999329447746,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 61,
+      "scenario_id": 61,
+      "scenario_name": "power_2024061808_n0.05",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219
+      ],
+      "infiltration_min_mm_hr": 5.0,
+      "infiltration_mean_mm_hr": 5.0,
+      "infiltration_max_mm_hr": 5.0,
+      "manning_min": 0.05000000074505806,
+      "manning_mean": 0.05000000447034836,
+      "manning_max": 0.05000000074505806,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 62,
+      "scenario_id": 62,
+      "scenario_name": "power_2024061808_n0.08",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219,
+        12.569999694824219
+      ],
+      "infiltration_min_mm_hr": 10.0,
+      "infiltration_mean_mm_hr": 10.0,
+      "infiltration_max_mm_hr": 10.0,
+      "manning_min": 0.07999999821186066,
+      "manning_mean": 0.07999999076128006,
+      "manning_max": 0.07999999821186066,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 63,
+      "scenario_id": 63,
+      "scenario_name": "power_2024061911_n0.03",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165
+      ],
+      "infiltration_min_mm_hr": 0.0,
+      "infiltration_mean_mm_hr": 0.0,
+      "infiltration_max_mm_hr": 0.0,
+      "manning_min": 0.029999999329447746,
+      "manning_mean": 0.029999997466802597,
+      "manning_max": 0.029999999329447746,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 64,
+      "scenario_id": 64,
+      "scenario_name": "power_2024061911_n0.05",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165
+      ],
+      "infiltration_min_mm_hr": 5.0,
+      "infiltration_mean_mm_hr": 5.0,
+      "infiltration_max_mm_hr": 5.0,
+      "manning_min": 0.05000000074505806,
+      "manning_mean": 0.05000000447034836,
+      "manning_max": 0.05000000074505806,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 65,
+      "scenario_id": 65,
+      "scenario_name": "power_2024061911_n0.08",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165,
+        4.71999979019165
+      ],
+      "infiltration_min_mm_hr": 10.0,
+      "infiltration_mean_mm_hr": 10.0,
+      "infiltration_max_mm_hr": 10.0,
+      "manning_min": 0.07999999821186066,
+      "manning_mean": 0.07999999076128006,
+      "manning_max": 0.07999999821186066,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 66,
+      "scenario_id": 66,
+      "scenario_name": "power_2024070102_n0.03",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727
+      ],
+      "infiltration_min_mm_hr": 0.0,
+      "infiltration_mean_mm_hr": 0.0,
+      "infiltration_max_mm_hr": 0.0,
+      "manning_min": 0.029999999329447746,
+      "manning_mean": 0.029999997466802597,
+      "manning_max": 0.029999999329447746,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 67,
+      "scenario_id": 67,
+      "scenario_name": "power_2024070102_n0.05",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727
+      ],
+      "infiltration_min_mm_hr": 5.0,
+      "infiltration_mean_mm_hr": 5.0,
+      "infiltration_max_mm_hr": 5.0,
+      "manning_min": 0.05000000074505806,
+      "manning_mean": 0.05000000447034836,
+      "manning_max": 0.05000000074505806,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 68,
+      "scenario_id": 68,
+      "scenario_name": "power_2024070102_n0.08",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727,
+        3.2100000381469727
+      ],
+      "infiltration_min_mm_hr": 10.0,
+      "infiltration_mean_mm_hr": 10.0,
+      "infiltration_max_mm_hr": 10.0,
+      "manning_min": 0.07999999821186066,
+      "manning_mean": 0.07999999076128006,
+      "manning_max": 0.07999999821186066,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 69,
+      "scenario_id": 69,
+      "scenario_name": "power_2024082010_n0.03",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175
+      ],
+      "infiltration_min_mm_hr": 0.0,
+      "infiltration_mean_mm_hr": 0.0,
+      "infiltration_max_mm_hr": 0.0,
+      "manning_min": 0.029999999329447746,
+      "manning_mean": 0.029999997466802597,
+      "manning_max": 0.029999999329447746,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 70,
+      "scenario_id": 70,
+      "scenario_name": "power_2024082010_n0.05",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175
+      ],
+      "infiltration_min_mm_hr": 5.0,
+      "infiltration_mean_mm_hr": 5.0,
+      "infiltration_max_mm_hr": 5.0,
+      "manning_min": 0.05000000074505806,
+      "manning_mean": 0.05000000447034836,
+      "manning_max": 0.05000000074505806,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    },
+    {
+      "scenario_index": 71,
+      "scenario_id": 71,
+      "scenario_name": "power_2024082010_n0.08",
+      "temporal_profile": "NASA_POWER_hourly",
+      "spatial_pattern": "uniform_downscaled",
+      "initial_condition": "6h_rain_spinup_from_dry",
+      "rainfall_profile_mm_hr": [
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175,
+        2.390000104904175
+      ],
+      "infiltration_min_mm_hr": 10.0,
+      "infiltration_mean_mm_hr": 10.0,
+      "infiltration_max_mm_hr": 10.0,
+      "manning_min": 0.07999999821186066,
+      "manning_mean": 0.07999999076128006,
+      "manning_max": 0.07999999821186066,
+      "elevation_min_m": 46.0,
+      "elevation_mean_m": 52.79679870605469,
+      "elevation_max_m": 101.0
+    }
+  ],
+  "metric_definitions": {
+    "depth_and_momentum": "MAE, RMSE, and bias over all grid cells",
+    "wet_depth_mean_relative_error_pct": "Mean absolute relative depth error on ANUGA cells with depth >= wet threshold",
+    "wet_area_csi": "Intersection over union at the wet threshold",
+    "velocity": "u, v, vector, and speed MAE where both ANUGA and ConvLSTM depths meet the wet threshold",
+    "water_volume_relative_error_pct": "Absolute difference in total depth-integrated volume divided by ANUGA volume",
+    "aggregation": "Metrics are calculated per scenario, then averaged equally across validation scenarios"
+  }
+}

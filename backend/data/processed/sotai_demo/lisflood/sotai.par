@@ -1,0 +1,11 @@
+DEMfile sotai_dem.asc
+resroot lisflood_sotai
+sim_time 3600.0
+saveint 300.0
+massint 300.0
+fpfric 0.050
+infiltration 1.38888888889e-06
+rainfall sotai.rain
+voutput
+qoutput
+elevoff

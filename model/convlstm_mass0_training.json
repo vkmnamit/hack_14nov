@@ -1,0 +1,175 @@
+{
+  "device": "mps",
+  "training_scenarios": 36,
+  "validation_scenarios": 18,
+  "validation_selection_metric": "mean of depth-MAE ratio, water-volume-error ratio, and CSI-miss ratio relative to the original checkpoint",
+  "baseline_validation": {
+    "depth_mae_at_15min": 0.02016525249928236,
+    "wet_area_csi_at_15min": 0.32477672939672264,
+    "wet_depth_mean_relative_error_pct_at_15min": 106.66483857896593,
+    "water_volume_relative_error_pct_at_15min": 66.3218583334277,
+    "depth_mae_at_30min": 0.03676159426362978,
+    "wet_area_csi_at_30min": 0.3520366085808251,
+    "wet_depth_mean_relative_error_pct_at_30min": 145.70414606730142,
+    "water_volume_relative_error_pct_at_30min": 47.33597071128864,
+    "depth_mae_at_60min": 0.05481012796776162,
+    "wet_area_csi_at_60min": 0.3527896824894434,
+    "wet_depth_mean_relative_error_pct_at_60min": 144.20660188463,
+    "water_volume_relative_error_pct_at_60min": 27.888445228335307
+  },
+  "chunk_length": 10,
+  "mass_loss_weight": 0.0,
+  "initial_weights": "/Users/namitraj/Desktop/hacka_14nov/model/convlstm_surrogate.pt",
+  "best_weights": "../model/convlstm_mass0.pt",
+  "epochs": [
+    {
+      "epoch": 1,
+      "train_loss": 1.3606725541564326,
+      "teacher_forcing_ratio": 0.5,
+      "validation": {
+        "depth_mae_at_15min": 0.02743214974179864,
+        "wet_area_csi_at_15min": 0.37307851709270756,
+        "wet_depth_mean_relative_error_pct_at_15min": 198.1983723110623,
+        "water_volume_relative_error_pct_at_15min": 145.5944948610375,
+        "depth_mae_at_30min": 0.043086796843757234,
+        "wet_area_csi_at_30min": 0.3711675068165374,
+        "wet_depth_mean_relative_error_pct_at_30min": 222.33968777126736,
+        "water_volume_relative_error_pct_at_30min": 96.45172605151393,
+        "depth_mae_at_60min": 0.06090184652970897,
+        "wet_area_csi_at_60min": 0.3250085601600946,
+        "wet_depth_mean_relative_error_pct_at_60min": 178.99609926011829,
+        "water_volume_relative_error_pct_at_60min": 38.34465611653921
+      },
+      "validation_score": 1.176332159787967,
+      "seconds": 25.561095167009626
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.7651487427798135,
+      "teacher_forcing_ratio": 0.45454545454545453,
+      "validation": {
+        "depth_mae_at_15min": 0.01733592747607165,
+        "wet_area_csi_at_15min": 0.3524645341076391,
+        "wet_depth_mean_relative_error_pct_at_15min": 89.13959164089627,
+        "water_volume_relative_error_pct_at_15min": 44.316226371178495,
+        "depth_mae_at_30min": 0.031031127812133893,
+        "wet_area_csi_at_30min": 0.36358587691452027,
+        "wet_depth_mean_relative_error_pct_at_30min": 126.31765789455838,
+        "water_volume_relative_error_pct_at_30min": 31.067055642248377,
+        "depth_mae_at_60min": 0.05611945212715202,
+        "wet_area_csi_at_60min": 0.3216864036101553,
+        "wet_depth_mean_relative_error_pct_at_60min": 154.68729570176868,
+        "water_volume_relative_error_pct_at_60min": 28.096613967733855
+      },
+      "validation_score": 1.0264700501070447,
+      "seconds": 25.35644995800976
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.7274573898822483,
+      "teacher_forcing_ratio": 0.40909090909090906,
+      "validation": {
+        "depth_mae_at_15min": 0.016644754654003516,
+        "wet_area_csi_at_15min": 0.38352448766753233,
+        "wet_depth_mean_relative_error_pct_at_15min": 87.03813340928819,
+        "water_volume_relative_error_pct_at_15min": 50.267059751925956,
+        "depth_mae_at_30min": 0.02671855998535951,
+        "wet_area_csi_at_30min": 0.4052006138921329,
+        "wet_depth_mean_relative_error_pct_at_30min": 109.26286103990343,
+        "water_volume_relative_error_pct_at_30min": 28.640196515482394,
+        "depth_mae_at_60min": 0.051461688760254115,
+        "wet_area_csi_at_60min": 0.3471036262545791,
+        "wet_depth_mean_relative_error_pct_at_60min": 153.3027729458279,
+        "water_volume_relative_error_pct_at_60min": 20.818789488246825
+      },
+      "validation_score": 0.89806540175314,
+      "seconds": 25.231760708993534
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.693474952463509,
+      "teacher_forcing_ratio": 0.36363636363636365,
+      "validation": {
+        "depth_mae_at_15min": 0.01643176845067905,
+        "wet_area_csi_at_15min": 0.3810461881233788,
+        "wet_depth_mean_relative_error_pct_at_15min": 89.05589421590169,
+        "water_volume_relative_error_pct_at_15min": 41.55890753524561,
+        "depth_mae_at_30min": 0.029124897852953937,
+        "wet_area_csi_at_30min": 0.39092330044669604,
+        "wet_depth_mean_relative_error_pct_at_30min": 129.19880718655057,
+        "water_volume_relative_error_pct_at_30min": 24.24919438274872,
+        "depth_mae_at_60min": 0.05759946608708964,
+        "wet_area_csi_at_60min": 0.32739441216379167,
+        "wet_depth_mean_relative_error_pct_at_60min": 175.63047705756293,
+        "water_volume_relative_error_pct_at_60min": 25.16985169991478
+      },
+      "validation_score": 0.9975493248134737,
+      "seconds": 24.77181833299983
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.7435047212315516,
+      "teacher_forcing_ratio": 0.3181818181818182,
+      "validation": {
+        "depth_mae_at_15min": 0.016343022127532296,
+        "wet_area_csi_at_15min": 0.4038491222150094,
+        "wet_depth_mean_relative_error_pct_at_15min": 93.39400143093533,
+        "water_volume_relative_error_pct_at_15min": 40.80824668944007,
+        "depth_mae_at_30min": 0.027818614927430946,
+        "wet_area_csi_at_30min": 0.4206012357691187,
+        "wet_depth_mean_relative_error_pct_at_30min": 130.7435802883572,
+        "water_volume_relative_error_pct_at_30min": 24.71700869119493,
+        "depth_mae_at_60min": 0.054466401123338275,
+        "wet_area_csi_at_60min": 0.3503514465053514,
+        "wet_depth_mean_relative_error_pct_at_60min": 182.25547069973416,
+        "water_volume_relative_error_pct_at_60min": 24.320203511487406
+      },
+      "validation_score": 0.9565163715658623,
+      "seconds": 24.882507375004934
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.7786149797547195,
+      "teacher_forcing_ratio": 0.2727272727272727,
+      "validation": {
+        "depth_mae_at_15min": 0.01723400368872616,
+        "wet_area_csi_at_15min": 0.39701185829200075,
+        "wet_depth_mean_relative_error_pct_at_15min": 100.10987091064453,
+        "water_volume_relative_error_pct_at_15min": 50.396452741793496,
+        "depth_mae_at_30min": 0.030771867061654728,
+        "wet_area_csi_at_30min": 0.4189075695431027,
+        "wet_depth_mean_relative_error_pct_at_30min": 157.50294664171008,
+        "water_volume_relative_error_pct_at_30min": 34.61933435090657,
+        "depth_mae_at_60min": 0.059507416354285345,
+        "wet_area_csi_at_60min": 0.35204606441200026,
+        "wet_depth_mean_relative_error_pct_at_60min": 208.17431259155273,
+        "water_volume_relative_error_pct_at_60min": 35.162470324725156
+      },
+      "validation_score": 1.1158919425125087,
+      "seconds": 24.860661457991228
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.8944405034632871,
+      "teacher_forcing_ratio": 0.2272727272727273,
+      "validation": {
+        "depth_mae_at_15min": 0.015312531031668186,
+        "wet_area_csi_at_15min": 0.4132150075216874,
+        "wet_depth_mean_relative_error_pct_at_15min": 83.96617635091145,
+        "water_volume_relative_error_pct_at_15min": 35.53263943944549,
+        "depth_mae_at_30min": 0.02544910791847441,
+        "wet_area_csi_at_30min": 0.4254441637575043,
+        "wet_depth_mean_relative_error_pct_at_30min": 105.91955312093098,
+        "water_volume_relative_error_pct_at_30min": 24.42849322786651,
+        "depth_mae_at_60min": 0.04655771661135885,
+        "wet_area_csi_at_60min": 0.3655017087515486,
+        "wet_depth_mean_relative_error_pct_at_60min": 141.74309794108072,
+        "water_volume_relative_error_pct_at_60min": 27.067437459563465
+      },
+      "validation_score": 0.9334520414950743,
+      "seconds": 24.71135308399971
+    }
+  ],
+  "best_epoch": 3,
+  "best_validation_score": 0.89806540175314
+}

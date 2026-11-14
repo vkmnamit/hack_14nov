@@ -1,0 +1,71 @@
+{
+  "comparison": "ANUGA triangle-centroid depths averaged to raster cells versus LISFLOOD-FP depth rasters",
+  "warning": "Diagnostic comparison only; this demo is not calibrated.",
+  "frames": [
+    {
+      "time_seconds": 0.0,
+      "depth_rmse_m": 0.0,
+      "depth_mae_m": 0.0
+    },
+    {
+      "time_seconds": 300.0,
+      "depth_rmse_m": 0.0018250205478297548,
+      "depth_mae_m": 0.001384799999999809
+    },
+    {
+      "time_seconds": 600.0,
+      "depth_rmse_m": 0.0053171722225417925,
+      "depth_mae_m": 0.0028418200627416818
+    },
+    {
+      "time_seconds": 900.0,
+      "depth_rmse_m": 0.011963005514259438,
+      "depth_mae_m": 0.00549931442666472
+    },
+    {
+      "time_seconds": 1200.0,
+      "depth_rmse_m": 0.019075682722571412,
+      "depth_mae_m": 0.008110994767980509
+    },
+    {
+      "time_seconds": 1500.0,
+      "depth_rmse_m": 0.02701147368921604,
+      "depth_mae_m": 0.010627393951981326
+    },
+    {
+      "time_seconds": 1800.0,
+      "depth_rmse_m": 0.03574745266651586,
+      "depth_mae_m": 0.013375744131824019
+    },
+    {
+      "time_seconds": 2100.0,
+      "depth_rmse_m": 0.04507630362197974,
+      "depth_mae_m": 0.01635657975997344
+    },
+    {
+      "time_seconds": 2400.0,
+      "depth_rmse_m": 0.05422469535340806,
+      "depth_mae_m": 0.019361014763948362
+    },
+    {
+      "time_seconds": 2700.0,
+      "depth_rmse_m": 0.06185984171953857,
+      "depth_mae_m": 0.022186538566167327
+    },
+    {
+      "time_seconds": 3000.0,
+      "depth_rmse_m": 0.06896160758792265,
+      "depth_mae_m": 0.02484192708159246
+    },
+    {
+      "time_seconds": 3300.0,
+      "depth_rmse_m": 0.07560377571647768,
+      "depth_mae_m": 0.027454208241627157
+    },
+    {
+      "time_seconds": 3600.0,
+      "depth_rmse_m": 0.08212756918585595,
+      "depth_mae_m": 0.030176366462936494
+    }
+  ]
+}
