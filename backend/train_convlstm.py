@@ -296,3 +296,33 @@ def validate(
     return result
 
 
+def validation_score(
+    metrics: dict[str, float],
+    baseline: dict[str, float],
+) -> float:
+    depth_ratio = (
+        metrics["depth_mae_at_60min"]
+        / baseline["depth_mae_at_60min"]
+    )
+    volume_ratio = (
+        metrics["water_volume_relative_error_pct_at_60min"]
+        / baseline["water_volume_relative_error_pct_at_60min"]
+    )
+    csi_miss_ratio = (
+        (1.0 - metrics["wet_area_csi_at_60min"])
+        / (1.0 - baseline["wet_area_csi_at_60min"])
+    )
+    return (depth_ratio + volume_ratio + csi_miss_ratio) / 3.0
+
+
+def save_checkpoint(model: ConvLSTMSurrogate, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(
+        {
+            key: value.detach().cpu()
+            for key, value in model.state_dict().items()
+        },
+        path,
+    )
+
+
