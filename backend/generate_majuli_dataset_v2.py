@@ -257,7 +257,97 @@ def run_scenario(
     )
 
 def main() -> None:
-    pass
+    dem, xll, yll = load_dem()
+    temporal_names = list(TEMPORAL_PROFILES)
+    spatial_names = list(SPATIAL_PATTERNS)
+    scenario_records: list[dict[str, object]] = []
+    states_list: list[np.ndarray] = []
+    raw_rain_list: list[np.ndarray] = []
+    effective_rain_list: list[np.ndarray] = []
+    initial_states_list: list[np.ndarray] = []
+    mass_errors_list: list[np.ndarray] = []
+
+    total_scenarios = (
+        len(temporal_names)
+        * len(spatial_names)
+        * REPLICATES_PER_RAINFALL_PATTERN
+    )
+    for temporal_index, (temporal_name, profile) in enumerate(
+        TEMPORAL_PROFILES.items()
+    ):
+        for spatial_index, spatial_name in enumerate(spatial_names):
+            split = split_for(temporal_index, spatial_index)
+            base_id = temporal_index * len(spatial_names) + spatial_index
+            for replicate in range(REPLICATES_PER_RAINFALL_PATTERN):
+                scenario_id = len(scenario_records)
+                roughness = PARAMETER_LEVELS["manning_n"][
+                    (base_id + replicate) % 3
+                ]
+                infiltration = PARAMETER_LEVELS["infiltration_loss_mm_hr"][
+                    (base_id // 2 + 2 * replicate) % 3
+                ]
+                initial_condition = PARAMETER_LEVELS["initial_condition"][
+                    (base_id + 2 * replicate) % 3
+                ]
+                print(
+                    f"Scenario {scenario_id + 1:02d}/{total_scenarios}: "
+                    f"{temporal_name} / {spatial_name} / "
+                    f"n={roughness:.2f} / I={infiltration:.0f} / "
+                    f"initial={initial_condition}"
+                )
+                states, raw_rain, effective_rain, initial_state, mass_errors = (
+                    run_scenario(
+                        dem,
+                        xll,
+                        yll,
+                        profile,
+                        spatial_name,
+                        roughness,
+                        infiltration,
+                        initial_condition,
+                    )
+                )
+                states_list.append(states)
+                raw_rain_list.append(raw_rain)
+                effective_rain_list.append(effective_rain)
+                initial_states_list.append(initial_state)
+                mass_errors_list.append(mass_errors)
+                speed = np.divide(
+                    np.hypot(states[:, 1], states[:, 2]),
+                    states[:, 0],
+                    out=np.zeros_like(states[:, 0]),
+                    where=states[:, 0] >= FLOOD_DEPTH_THRESHOLD_M,
+                )
+                scenario_records.append(
+                    {
+                        "scenario_id": scenario_id,
+                        "name": (
+                            f"{temporal_name}__{spatial_name}__rep{replicate}"
+                        ),
+                        "temporal_profile": temporal_name,
+                        "spatial_pattern": spatial_name,
+                        "rainfall_mm_hr_by_10min": profile,
+                        "manning_n": roughness,
+                        "infiltration_loss_mm_hr": infiltration,
+                        "initial_condition": initial_condition,
+                        "boundary": "reflective on all sides",
+                        "split": split,
+                        "max_depth_m": float(states[:, 0].max()),
+                        "max_speed_m_s_where_depth_ge_1cm": float(speed.max()),
+                        "max_mass_balance_relative_error": float(
+                            mass_errors.max()
+                        ),
+                        "final_mass_balance_relative_error": float(
+                            mass_errors[-1]
+                        ),
+                        "final_inundated_cells_at_1cm": int(
+                            np.count_nonzero(
+                                states[-1, 0] >= FLOOD_DEPTH_THRESHOLD_M
+                            )
+                        ),
+                    }
+                )
+    print("Scenario simulations complete")
 
 if __name__ == "__main__":
     main()
