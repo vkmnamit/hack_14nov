@@ -359,3 +359,105 @@ def build_grouped_summary(
     return grouped
 
 
+def save_spatial_report(
+    output_dir: Path,
+    split: str,
+    scenario_info: list[dict[str, Any]],
+    predictions: np.ndarray,
+    references: np.ndarray,
+) -> None:
+    np.savez_compressed(
+        output_dir / f"{split}_spatial_fields.npz",
+        scenario_indices=np.asarray(
+            [item["scenario_index"] for item in scenario_info],
+            dtype=np.int16,
+        ),
+        scenario_ids=np.asarray(
+            [item["scenario_id"] for item in scenario_info],
+            dtype=np.int16,
+        ),
+        minutes=np.asarray(TARGET_MINUTES, dtype=np.int16),
+        predicted_convlstm=predictions,
+        expected_anuga=references,
+        signed_error=predictions - references,
+    )
+
+    maps_dir = output_dir / "maps"
+    maps_dir.mkdir(parents=True, exist_ok=True)
+    for scenario_number, scenario in enumerate(scenario_info):
+        fig, axes = plt.subplots(
+            len(TARGET_MINUTES),
+            4,
+            figsize=(16, 3.6 * len(TARGET_MINUTES)),
+            constrained_layout=True,
+        )
+        for row_index, minute in enumerate(TARGET_MINUTES):
+            pred = predictions[scenario_number, row_index]
+            truth = references[scenario_number, row_index]
+            pred_depth = pred[0]
+            truth_depth = truth[0]
+            depth_limit = max(
+                float(np.max(pred_depth)),
+                float(np.max(truth_depth)),
+                WET_THRESHOLD_M,
+            )
+            depth_error = pred_depth - truth_depth
+            error_limit = max(float(np.max(np.abs(depth_error))), 1e-6)
+            shared_wet = (
+                (pred_depth >= WET_THRESHOLD_M)
+                & (truth_depth >= WET_THRESHOLD_M)
+            )
+            speed_error = np.full_like(pred_depth, np.nan)
+            if shared_wet.any():
+                pred_speed = np.hypot(
+                    pred[1, shared_wet] / pred_depth[shared_wet],
+                    pred[2, shared_wet] / pred_depth[shared_wet],
+                )
+                truth_speed = np.hypot(
+                    truth[1, shared_wet] / truth_depth[shared_wet],
+                    truth[2, shared_wet] / truth_depth[shared_wet],
+                )
+                speed_error[shared_wet] = pred_speed - truth_speed
+            speed_limit = max(
+                float(np.nanmax(np.abs(speed_error)))
+                if np.isfinite(speed_error).any()
+                else 0.0,
+                1e-6,
+            )
+
+            panels = (
+                (truth_depth, "ANUGA expected depth (m)", "Blues", 0, depth_limit),
+                (pred_depth, "ConvLSTM predicted depth (m)", "Blues", 0, depth_limit),
+                (depth_error, "Depth error: pred - ANUGA (m)", "coolwarm", -error_limit, error_limit),
+                (speed_error, "Speed error on shared wet cells (m/s)", "coolwarm", -speed_limit, speed_limit),
+            )
+            for column, (field, title, cmap, vmin, vmax) in enumerate(panels):
+                axis = axes[row_index, column]
+                image = axis.imshow(
+                    field,
+                    cmap=cmap,
+                    vmin=vmin,
+                    vmax=vmax,
+                    origin="upper",
+                )
+                axis.set_title(f"{title}\n{minute} min")
+                axis.set_xlabel("Grid column")
+                if column == 0:
+                    axis.set_ylabel("Grid row")
+                fig.colorbar(image, ax=axis, shrink=0.78)
+        safe_name = re.sub(
+            r"[^A-Za-z0-9_-]+",
+            "_",
+            scenario["scenario_name"],
+        ).strip("_")
+        fig.suptitle(
+            f"Scenario {scenario['scenario_id']}: {scenario['scenario_name']}",
+            fontsize=14,
+        )
+        fig.savefig(
+            maps_dir / f"scenario_{scenario['scenario_index']:02d}_{safe_name}.png",
+            dpi=120,
+        )
+        plt.close(fig)
+
+
