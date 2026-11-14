@@ -111,6 +111,31 @@ Key environment variables:
 - `VITE_DEMO_MODE`: Set to `true` only to use synthetic demo output; the default is connected model mode.
 - `VITE_CESIUM_ION_TOKEN`: (Optional) Free token from [Cesium Ion](https://ion.cesium.com/tokens) for high-resolution 3D world terrain & photogrammetry buildings.
 
+### Deploy the frontend (Vercel) and backend (Render)
+
+For Vercel, set the project's **Root Directory** to `frontend` (Vite). Do not
+deploy `backend/` as a Vercel function: its PyTorch/ANUGA dependencies exceed
+Vercel's serverless function bundle limit. Vercel can use its detected Vite
+build settings; the build command is `npm run build` and the output directory
+is `dist`.
+
+The backend CORS allowlist includes `https://hack-14nov.vercel.app`. Create a
+Python Web Service in Render using the repository root as its root directory
+(leave Render's Root Directory blank), then configure:
+
+```text
+Build Command: pip install -r backend/requirements.txt
+Start Command: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
+Health Check Path: /api/health
+```
+
+In the Vercel project's Environment Variables, set `VITE_API_BASE_URL` to the
+Render service URL (for example, `https://your-service.onrender.com`, without
+a trailing slash) and set `VITE_DEMO_MODE=false`. Redeploy Vercel after setting
+these variables because Vite embeds them during the build. Do not use
+`http://localhost:8000` for the deployed frontend. Keep `VITE_API_BASE_URL`
+pointing at the actual Render URL assigned to your service.
+
 ### 3. Run Development Server
 ```bash
 npm run dev

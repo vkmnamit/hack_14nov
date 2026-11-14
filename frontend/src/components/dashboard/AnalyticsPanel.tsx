@@ -1,10 +1,9 @@
-import { Building2, Droplet, Download, Route, Ruler, Timer, Waves } from 'lucide-react';
+import { Building2, Droplet, Route, Ruler, Timer, Waves } from 'lucide-react';
 import { BarChart, Bar, Cell, Tooltip as ReTooltip, XAxis, YAxis } from 'recharts';
 import MetricCard from '@/components/dashboard/MetricCard';
 import PhysicsIntegrity from '@/components/dashboard/PhysicsIntegrity';
 import { useSimulation } from '@/state/SimulationContext';
 import { computeStats } from '@/lib/demoData';
-import { apiConfig } from '@/services/api';
 
 const BAND_COLORS = ['#9BD8F5', '#00D4FF', '#1560D4', '#FFB547', '#FF4545'];
 
@@ -39,25 +38,6 @@ export default function AnalyticsPanel() {
           {state.isDemoMode ? 'Illustrative' : 'Backend'}
         </span>
       </div>
-
-      {state.simulationMeta?.id && !state.isDemoMode && (
-        <div className="grid gap-2">
-          <a
-            href={`${apiConfig.baseUrl}/api/simulation/${state.simulationMeta.id}/report`}
-            download={`${state.simulationMeta.id}-risk-report.png`}
-            className="flex items-center justify-center gap-2 rounded border border-[#253540] bg-[#0b1418] px-3 py-2 text-[11px] text-[#b8ff24] transition hover:bg-[#b8ff24]/10"
-          >
-            <Download size={13} /> Download depth &amp; risk map
-          </a>
-          <a
-            href={`${apiConfig.baseUrl}/api/simulation/${state.simulationMeta.id}/comparison-report`}
-            download={`${state.simulationMeta.id}-model-comparison.html`}
-            className="flex items-center justify-center gap-2 rounded border border-[#253540] bg-[#0b1418] px-3 py-2 text-[11px] text-[#b8ff24] transition hover:bg-[#b8ff24]/10"
-          >
-            <Download size={13} /> All-model maps + Ollama verdict
-          </a>
-        </div>
-      )}
 
       {/* Metric cards */}
       <div className="grid grid-cols-1 gap-2">

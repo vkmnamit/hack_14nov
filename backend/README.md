@@ -20,6 +20,28 @@ explicit error when the selected solver or required assets are unavailable;
 there is no precomputed-frame fallback. The older Sotai/LISFLOOD-FP setup
 remains available as a separate comparison baseline.
 
+## Deploy the backend to Render
+
+Create a Python Web Service with the repository root as its root directory.
+The city checkpoints and terrain grids are loaded from the tracked `model/`
+directory, so do not set the service root to `backend/`.
+
+Use these Render settings:
+
+```text
+Build Command: pip install -r backend/requirements.txt
+Start Command: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
+Health Check Path: /api/health
+```
+
+The backend allows requests from `https://hack-14nov.vercel.app`. In Vercel,
+set `VITE_API_BASE_URL` to the Render service's assigned HTTPS URL and
+`VITE_DEMO_MODE=false`, then redeploy the frontend. The Render URL is assigned
+when the service is created; do not use `localhost` in Vercel's production
+environment. Model assets are bundled in the repository, so a persistent disk
+is not required. ANUGA and PyTorch inference can require more memory and CPU
+than a small instance provides; choose Render compute accordingly.
+
 ## Installed models
 
 - ANUGA 4.2.0 is installed in `backend/.venv`.
