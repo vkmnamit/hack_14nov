@@ -171,3 +171,26 @@ separate test split once for a final assessment by adding `--split test` and
 using a different `--output-dir`. All three splits are synthetic ANUGA
 scenarios; they do not establish accuracy against observed floods.
 
+## Build a Guwahati city-specific surrogate
+
+Generate the city dataset and normalization archive:
+
+```sh
+cd backend
+.venv/bin/python generate_guwahati_dataset.py
+```
+
+The script downloads the public SRTM `N26E091` tile and NASA POWER hourly
+`PRECTOTCORR` data for 2020–2024. The 50 x 50 grid is centered at
+26.1445 N, 91.7362 E in UTM zone 46N at 30 m spacing. Rainfall windows are
+split by year (2020–2022 train, 2023 validation, 2024 test), with a six-hour
+ANUGA spin-up before each 60-minute forecast. NASA POWER is coarse MERRA-2
+precipitation, not a local gauge; its point value is applied uniformly across
+the grid. Manning roughness, infiltration, and reflective boundaries are
+simulation assumptions, not locally calibrated parameters.
+The three roughness/infiltration pairs are `(0.03, 0)`, `(0.05, 5)`, and
+`(0.08, 10)`; their grouped comparisons are exploratory because the parameters
+are paired, not independently varied.
+The city-specific validation sweep selected a mass-loss weight of `5e-8`;
+selection uses only the 2023 validation year, not the 2024 test year.
+
