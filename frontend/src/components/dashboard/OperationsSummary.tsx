@@ -29,6 +29,18 @@ export default function OperationsSummary() {
   const { state } = useSimulation();
   const frame = state.dataset?.frames[state.currentFrameIndex] ?? null;
   const stats = frame && state.dataset ? computeStats(frame, state.dataset.terrain, 600, 140) : null;
+  const exposureValue = (
+    count: number | undefined,
+    demoCount: number | undefined
+  ): string => {
+    if (state.isDemoMode) return demoCount === undefined ? '—' : String(demoCount);
+    if (count !== undefined) return String(count);
+    if (state.dataset?.exposure?.status === 'unavailable') return 'OSM unavailable';
+    return state.simulatedOnce ? 'OSM pending' : '—';
+  };
+  const modelIntegrity = state.isDemoMode
+    ? 'Demo / illustrative'
+    : state.simulationMeta?.diagnostics?.solver ?? 'Not run';
   const statusAccent =
     state.status === 'completed'
       ? 'text-white'
@@ -44,12 +56,12 @@ export default function OperationsSummary() {
       <SummaryItem label="Operational status" value={state.status.toUpperCase()} accent={statusAccent} />
       <SummaryItem label="Max water depth" value={stats ? stats.maxDepth.toFixed(2) : '—'} unit="m" accent="text-[#65c9e7]" />
       <SummaryItem label="Flooded area" value={stats ? stats.floodedAreaKm2.toFixed(3) : '—'} unit="km²" accent="text-[#e5e7eb]" />
-      <SummaryItem label="Buildings at risk" value={stats ? `${stats.affectedBuildings}` : '—'} accent="text-[#f4ca35]" />
-      <SummaryItem label="Road segments" value={stats ? `${stats.affectedRoadSegments}` : '—'} accent="text-[#ed7044]" />
+      <SummaryItem label="Buildings at risk" value={exposureValue(frame?.affectedBuildings, stats?.affectedBuildings)} accent="text-[#f4ca35]" />
+      <SummaryItem label="OSM road ways at risk" value={exposureValue(frame?.affectedRoadWays, stats?.affectedRoadSegments)} accent="text-[#ed7044]" />
       <div className="hidden min-w-[150px] flex-1 border-r border-[var(--varuna-border)] px-4 xl:block">
         <div>
           <p className="text-[10px] text-[#9a9a9a]">Model integrity</p>
-          <p className="font-tabular text-sm text-white">Demo / illustrative</p>
+          <p className="font-tabular text-sm text-white">{modelIntegrity}</p>
         </div>
       </div>
     </section>

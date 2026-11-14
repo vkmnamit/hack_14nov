@@ -71,7 +71,24 @@ The development launcher starts FastAPI and Vite together. The ConvLSTM checkpoi
 - `GET /api/models` - Lists ANUGA, ConvLSTM, and adaptive model modes.
 - `GET /api/locations` - Lists the supported Majuli and Guwahati grids.
 - `POST /api/simulate` - Accepts city, model, rainfall, and duration; returns a simulation ID.
-- `GET /api/simulation/{id}/frames` - Runs the selected model and returns terrain, 61 depth/velocity frames, and measured runtime diagnostics.
+- `GET /api/simulation/{id}/frames` - Runs the selected model and returns terrain, 61 depth/velocity/momentum frames, measured runtime diagnostics, and OSM exposure counts when available.
+- `GET /api/simulation/{id}/comparison-report` - Downloads side-by-side depth maps and a metrics comparison of ANUGA, ConvLSTM, and adaptive forecasts. It uses local Ollama for a constrained verdict.
+- `GET /api/simulation/{id}/report` - Downloads a PNG depth and risk map.
+
+The map grid can be clicked to inspect cell depth, surface height, velocity,
+momentum, rainfall, water volume, and mapped building/road exposure. Exposure
+counts use OpenStreetMap building centroids and road-way intersections in
+cells at least 1 cm deep; they are indicative mapped-feature counts, not a
+complete footprint-based impact assessment. If OSM is unavailable, the UI
+reports that status rather than inventing counts. OSM data is © OpenStreetMap
+contributors and available under the ODbL.
+
+The comparison report treats ANUGA as a synthetic simulation reference, not
+observed flood truth. Depth MAE/RMSE, 1 cm CSI, wet-cell velocity error,
+water-volume error, and model runtimes describe agreement with that reference
+for one scenario; they do not establish real-world forecast accuracy. The
+Ollama service must be running locally (default model `qwen2.5:7b`); configure
+`VARUNA_OLLAMA_MODEL` or `VARUNA_OLLAMA_GENERATE_URL` if needed.
 
 ---
 

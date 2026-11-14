@@ -62,6 +62,17 @@ interface CesiumMapProps {
     lat: number;
     elevation: number;
     depth: number;
+    row: number;
+    column: number;
+    cellIndex: number;
+    velocityX: number;
+    velocityY: number;
+    momentumX: number;
+    momentumY: number;
+    rainfallMmHr: number;
+    cellWaterVolumeM3: number;
+    buildingsAtRisk: number | null;
+    roadWaysAtRisk: number | null;
     velocity: number;
     flowDirection: number | null;
   } | null) => void;
@@ -77,7 +88,32 @@ const WATER_OFFSET_M = 0.16;
 const FLOOD_IMAGE_SIZE = 512;
 const DEPTH_TEXTURE_SCALE = 4;
 
-function rectFor(longitude: number, latitude: number): Rectangle {
+function rectFor(
+  longitude: number,
+  latitude: number,
+  terrain?: TerrainGrid | null
+): Rectangle {
+  if (terrain?.bounds) {
+    return Rectangle.fromDegrees(
+      terrain.bounds.west,
+      terrain.bounds.south,
+      terrain.bounds.east,
+      terrain.bounds.north
+    );
+  }
+  if (terrain?.cellSizeM) {
+    const halfHeightM = (terrain.size * terrain.cellSizeM) / 2;
+    const latDelta = halfHeightM / 111_320;
+    const lonDelta =
+      halfHeightM /
+      (111_320 * Math.max(Math.cos(CesiumMath.toRadians(latitude)), 1e-6));
+    return Rectangle.fromDegrees(
+      longitude - lonDelta,
+      latitude - latDelta,
+      longitude + lonDelta,
+      latitude + latDelta
+    );
+  }
   return Rectangle.fromDegrees(
     longitude - HALF_EXTENT_DEG,
     latitude - HALF_EXTENT_DEG,
@@ -241,7 +277,7 @@ function flyToPreset(
     global: { longitude: 78, latitude: 20, height: 19_000_000, pitch: -90 },
     india: { longitude: 78, latitude: 22, height: 4_500_000, pitch: -70 },
     bengaluru: { longitude: 77.5946, latitude: 12.9716, height: 85_000, pitch: -52 },
-    study: { longitude, latitude: latitude - 0.011, height: cameraHeight, pitch: -34 },
+    study: { longitude, latitude, height: Math.min(cameraHeight, 1800), pitch: -75 },
   };
   const target = targets[preset];
   viewer.camera.flyTo({
@@ -294,15 +330,15 @@ export default function CesiumMap({
   const flowParticlesRef = useRef<FlowParticle[]>([]);
   const flowEnabledRef = useRef(flowEnabled);
   const flowSpeedMultiplierRef = useRef(flowSpeedMultiplier);
-  const flowBoundsRef = useRef({ longitude, latitude });
+  const flowBoundsRef = useRef({ longitude, latitude, terrain });
   const depthExaggerationRef = useRef(DEFAULT_DEPTH_EXAGGERATION);
   const [depthExaggeration, setDepthExaggeration] = useState(DEFAULT_DEPTH_EXAGGERATION);
 
   useEffect(() => {
     flowEnabledRef.current = flowEnabled;
     flowSpeedMultiplierRef.current = flowSpeedMultiplier;
-    flowBoundsRef.current = { longitude, latitude };
-  }, [flowEnabled, flowSpeedMultiplier, longitude, latitude]);
+    flowBoundsRef.current = { longitude, latitude, terrain };
+  }, [flowEnabled, flowSpeedMultiplier, longitude, latitude, terrain]);
 
   useEffect(() => {
     depthExaggerationRef.current = depthExaggeration;
@@ -375,10 +411,10 @@ export default function CesiumMap({
         particle.lon += (particle.velocityX * seconds * flowSpeedMultiplierRef.current) / (111_320 * latitudeScale);
         particle.lat += (particle.velocityY * seconds * flowSpeedMultiplierRef.current) / 111_320;
         if (
-          particle.lon < rectFor(flowBoundsRef.current.longitude, flowBoundsRef.current.latitude).west ||
-          particle.lon > rectFor(flowBoundsRef.current.longitude, flowBoundsRef.current.latitude).east ||
-          particle.lat < rectFor(flowBoundsRef.current.longitude, flowBoundsRef.current.latitude).south ||
-          particle.lat > rectFor(flowBoundsRef.current.longitude, flowBoundsRef.current.latitude).north
+          particle.lon < rectFor(flowBoundsRef.current.longitude, flowBoundsRef.current.latitude, flowBoundsRef.current.terrain).west ||
+          particle.lon > rectFor(flowBoundsRef.current.longitude, flowBoundsRef.current.latitude, flowBoundsRef.current.terrain).east ||
+          particle.lat < rectFor(flowBoundsRef.current.longitude, flowBoundsRef.current.latitude, flowBoundsRef.current.terrain).south ||
+          particle.lat > rectFor(flowBoundsRef.current.longitude, flowBoundsRef.current.latitude, flowBoundsRef.current.terrain).north
         ) {
           particle.lon = particle.originLon;
           particle.lat = particle.originLat;
@@ -554,43 +590,114 @@ export default function CesiumMap({
         onPick?.(null);
         return;
       }
-      const carto = viewer.camera.pickEllipsoid(
-        movement.position,
-        viewer.scene.globe.ellipsoid
-      );
+      // Cesium depth picking is unreliable for GroundPrimitive flood overlays.
+      // Cast a ray through the click and intersect the local grid's geographic
+      // bounds; this maps visible grid clicks even over elevated mesh terrain.
+      const ray = viewer.camera.getPickRay(movement.position);
+      let pickedCartesian: Cartesian3 | undefined;
+      try {
+        if (viewer.scene.pickPositionSupported) {
+          viewer.scene.pickTranslucentDepth = true;
+          pickedCartesian = viewer.scene.pickPosition(movement.position);
+        }
+      } catch {
+        pickedCartesian = undefined;
+      }
+      if (!pickedCartesian && ray) pickedCartesian = viewer.scene.globe.pick(ray, viewer.scene);
+      if (!pickedCartesian) pickedCartesian = viewer.camera.pickEllipsoid(movement.position, viewer.scene.globe.ellipsoid);
+      let carto = pickedCartesian ? Cartographic.fromCartesian(pickedCartesian) : undefined;
+      if (ray) {
+        const rect = rectFor(longitude, latitude, terrain);
+        const center = Cartesian3.fromDegrees(longitude, latitude, 0);
+        const normal = Cartesian3.normalize(center, new Cartesian3());
+        const denominator = Cartesian3.dot(ray.direction, normal);
+        if (Math.abs(denominator) > 1e-8) {
+          const t = Cartesian3.dot(Cartesian3.subtract(center, ray.origin, new Cartesian3()), normal) / denominator;
+          if (t > 0) {
+            const surfacePoint = Cartesian3.add(ray.origin, Cartesian3.multiplyByScalar(ray.direction, t, new Cartesian3()), new Cartesian3());
+            const projected = Cartographic.fromCartesian(surfacePoint);
+            if (projected && projected.longitude >= rect.west && projected.longitude <= rect.east && projected.latitude >= rect.south && projected.latitude <= rect.north) carto = projected;
+          }
+        }
+      }
       if (!carto) {
         onPick(null);
         return;
       }
-      const lonLat = Cartographic.fromCartesian(carto);
-      if (!lonLat) {
-        onPick(null);
-        return;
+      const rect = rectFor(longitude, latitude, terrain);
+      // A rendered 3D tile may be picked outside the study grid. In that case,
+      // retry the globe intersection so grid selection remains tied to the DEM.
+      if (
+        (carto.longitude < rect.west ||
+          carto.longitude > rect.east ||
+          carto.latitude < rect.south ||
+          carto.latitude > rect.north) &&
+        ray
+      ) {
+        const globePosition = viewer.scene.globe.pick(ray, viewer.scene);
+        const globeCarto = globePosition ? Cartographic.fromCartesian(globePosition) : undefined;
+        if (globeCarto) {
+          carto = globeCarto;
+        }
       }
-      const lon = CesiumMath.toDegrees(lonLat.longitude);
-      const lat = CesiumMath.toDegrees(lonLat.latitude);
-      const rect = rectFor(longitude, latitude);
-      if (lon < rect.west || lon > rect.east || lat < rect.south || lat > rect.north) {
+      if (
+        carto.longitude < rect.west ||
+        carto.longitude > rect.east ||
+        carto.latitude < rect.south ||
+        carto.latitude > rect.north
+      ) {
         onPick(null);
         return;
       }
       // Map position back to grid indices (row 0 = north, matching the DEM)
       const col = Math.min(
         terrain.size - 1,
-        Math.max(0, Math.floor(((lon - rect.west) / (rect.east - rect.west)) * terrain.size))
+        Math.max(
+          0,
+          Math.floor(((carto.longitude - rect.west) / (rect.east - rect.west)) * terrain.size)
+        )
       );
       const row = Math.min(
         terrain.size - 1,
-        Math.max(0, Math.floor(((rect.north - lat) / (rect.north - rect.south)) * terrain.size))
+        Math.max(
+          0,
+          Math.floor(((rect.north - carto.latitude) / (rect.north - rect.south)) * terrain.size)
+        )
       );
       const idx = row * terrain.size + col;
       const velocityX = frame?.velocityX?.[idx] ?? 0;
       const velocityY = frame?.velocityY?.[idx] ?? 0;
+      const depth = frame ? frame.depths[idx] : 0;
+      const cellAreaM2 = (terrain.cellSizeM ?? 30) ** 2;
+      const cellIsWet = depth >= 0.01;
       onPick({
-        lon,
-        lat,
+        lon: CesiumMath.toDegrees(
+          rect.west + ((col + 0.5) / terrain.size) * (rect.east - rect.west)
+        ),
+        lat: CesiumMath.toDegrees(
+          rect.north - ((row + 0.5) / terrain.size) * (rect.north - rect.south)
+        ),
         elevation: terrain.elevation[idx],
-        depth: frame ? frame.depths[idx] : 0,
+        depth,
+        row,
+        column: col,
+        cellIndex: idx,
+        velocityX,
+        velocityY,
+        momentumX: frame?.momentumX?.[idx] ?? depth * velocityX,
+        momentumY: frame?.momentumY?.[idx] ?? depth * velocityY,
+        rainfallMmHr: frame?.rainfallMmHr ?? 0,
+        cellWaterVolumeM3: depth * cellAreaM2,
+        buildingsAtRisk: frame?.buildingsInCell
+          ? cellIsWet
+            ? frame.buildingsInCell[idx]
+            : 0
+          : null,
+        roadWaysAtRisk: frame?.roadWaysInCell
+          ? cellIsWet
+            ? frame.roadWaysInCell[idx]
+            : 0
+          : null,
         velocity: Math.hypot(velocityX, velocityY),
         flowDirection: velocityX || velocityY ? (CesiumMath.toDegrees(Math.atan2(velocityX, velocityY)) + 360) % 360 : null,
       });
@@ -612,7 +719,7 @@ export default function CesiumMap({
     const viewer = viewerRef.current;
     if (!viewer || !terrain) return;
 
-    const rect = rectFor(longitude, latitude);
+    const rect = rectFor(longitude, latitude, terrain);
     const geometry = buildGridGeometry(terrain, rect, null, undefined, undefined, {
       skirt: true,
     });
@@ -653,7 +760,7 @@ export default function CesiumMap({
       return;
     }
 
-    const rect = rectFor(longitude, latitude);
+    const rect = rectFor(longitude, latitude, terrain);
     const getDepthTexture = (index: number): HTMLCanvasElement => {
       const cached = depthTextureCacheRef.current.get(index);
       if (cached) return cached;
@@ -765,7 +872,7 @@ export default function CesiumMap({
       return;
     }
 
-    const rect = rectFor(longitude, latitude);
+    const rect = rectFor(longitude, latitude, terrain);
     const collection = new PointPrimitiveCollection();
     const trails = new PolylineCollection();
     const stride = Math.max(1, Math.floor(terrain.size / 10));

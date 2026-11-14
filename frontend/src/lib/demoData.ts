@@ -14,6 +14,13 @@
 export interface TerrainGrid {
   size: number;
   elevation: number[]; // row-major, metres
+  cellSizeM?: number;
+  bounds?: {
+    west: number;
+    south: number;
+    east: number;
+    north: number;
+  };
 }
 
 export interface FloodFrame {
@@ -26,11 +33,30 @@ export interface FloodFrame {
   /** Eastward and northward flow velocities in metres per second. */
   velocityX?: number[];
   velocityY?: number[];
+  /** Conserved momenta hu and hv in m²/s. */
+  momentumX?: number[];
+  momentumY?: number[];
+  /** OSM exposure counts at this frame; absent when inventory is unavailable. */
+  affectedBuildings?: number;
+  affectedRoadWays?: number;
+  buildingsInCell?: number[];
+  roadWaysInCell?: number[];
+}
+
+export interface ExposureSummary {
+  status: 'available' | 'unavailable';
+  source: string;
+  message?: string | null;
+  totalBuildings?: number | null;
+  totalRoadWays?: number | null;
+  thresholdM: number;
+  method: string;
 }
 
 export interface DemoDataset {
   terrain: TerrainGrid;
   frames: FloodFrame[];
+  exposure?: ExposureSummary;
   meta: {
     gridSize: number;
     rainfallIntensityMmHr: number;
@@ -124,7 +150,7 @@ export function generateTerrain(size: number, seed: number): TerrainGrid {
     const valley = -7 * Math.exp(-(distToValley * distToValley) * 18);
     elevation[i] = 22 + broad[i] + medium[i] + fine[i] + valley;
   }
-  return { size, elevation };
+  return { size, elevation, cellSizeM: 25 };
 }
 
 // ---------------------------------------------------------------------------
@@ -155,7 +181,7 @@ export function hyetograph(
 // Demo simulation: surface-accumulation heuristic over the grid
 // ---------------------------------------------------------------------------
 
-const CELL_SIZE_M = 25; // 64 * 25 m = 1.6 km tile
+const CELL_SIZE_M = 25; // Demo grid resolution; backend grids expose their own.
 const INFILTRATION_PER_MIN = 0.0006; // m/min soak-away, illustrative
 
 export function generateFloodFrames(
@@ -300,7 +326,8 @@ export function computeStats(
   totalBuildings: number,
   totalRoadSegments: number
 ): FloodStats {
-  const cellAreaKm2 = (CELL_SIZE_M * CELL_SIZE_M) / 1e6;
+  const cellSizeM = terrain.cellSizeM ?? CELL_SIZE_M;
+  const cellAreaKm2 = (cellSizeM * cellSizeM) / 1e6;
   let floodedCells = 0;
   let maxDepth = 0;
   let sum = 0;

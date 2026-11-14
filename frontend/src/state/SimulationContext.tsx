@@ -244,7 +244,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
           }
           const meta = await postSimulate(req);
           dispatch({ type: 'RUN_PROGRESS', value: state.isDemoMode ? 80 : 60 });
-          const { simulationId, frames, terrain, diagnostics } = await getSimulationFrames(req, meta);
+          const { simulationId, frames, terrain, diagnostics, exposure } = await getSimulationFrames(req, meta);
           const datasetTerrain = terrain ?? (state.isDemoMode ? getDatasetForLocation(state.location).terrain : null);
           if (!datasetTerrain) {
             throw new Error('Backend response did not include terrain metadata for the flood frames.');
@@ -255,6 +255,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
             dataset: {
               terrain: datasetTerrain,
               frames,
+              exposure,
               meta: {
                 gridSize: datasetTerrain.size,
                 rainfallIntensityMmHr: state.rainfallIntensity,

@@ -17,7 +17,18 @@ interface CellReadout {
   lat: number;
   elevation: number;
   depth: number;
+  row: number;
+  column: number;
+  cellIndex: number;
+  velocityX: number;
+  velocityY: number;
+  momentumX: number;
+  momentumY: number;
   velocity: number;
+  rainfallMmHr: number;
+  cellWaterVolumeM3: number;
+  buildingsAtRisk: number | null;
+  roadWaysAtRisk: number | null;
   flowDirection: number | null;
 }
 
@@ -170,8 +181,8 @@ function Dashboard() {
               </div>
               <div className="grid grid-cols-2 gap-3 font-mono-num text-[10px]">
                 <div>
-                  <p className="text-[#666]">Zone</p>
-                  <p className="mt-1 text-white">BLR-EAST-01</p>
+                  <p className="text-[#666]">Region</p>
+                  <p className="mt-1 text-white">{state.location.region}</p>
                 </div>
                 <div>
                   <p className="text-[#666]">Grid</p>
@@ -214,18 +225,19 @@ function Dashboard() {
               </span>
             </div>
 
-            {/* Click-to-inspect readout */}
-            <div
-              className={cn(
-                'absolute left-4 top-12 z-10 rounded-md border border-[var(--varuna-border-strong)] bg-black/90 px-3 py-2 backdrop-blur transition-opacity duration-200',
-                readout ? 'opacity-100' : 'pointer-events-none opacity-0'
-              )}
-            >
-              <p className="mb-1 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-widest text-slate-400">
-                <Crosshair size={10} className="text-[var(--varuna-blue-2)]" /> Cell inspector
-              </p>
-              {readout && (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono-num text-[11px]">
+            {/* Click-to-inspect table */}
+            {readout && (
+              <section className="absolute left-4 top-14 z-20 max-h-[65%] w-[min(360px,calc(100%-2rem))] overflow-y-auto rounded-md border border-[#31505a] bg-[#071014]/95 shadow-2xl backdrop-blur-xl">
+                <header className="flex items-center justify-between border-b border-white/10 px-3 py-2">
+                  <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                    <Crosshair size={13} className="text-[#b8ff24]" /> Grid cell details
+                  </p>
+                  <button type="button" onClick={() => setReadout(null)} className="px-1 text-lg leading-none text-slate-400 hover:text-white" aria-label="Close grid details">×</button>
+                </header>
+                <div className="border-b border-white/10 px-3 py-2 font-mono-num text-[10px] text-slate-400">
+                  Cell {readout.cellIndex} · Row {readout.row + 1}, Column {readout.column + 1} · T+{frame?.t ?? 0} min
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 px-3 py-2 font-mono-num text-[11px]">
                   <span className="text-slate-500">Lat</span>
                   <span className="text-right text-slate-200">{readout.lat.toFixed(5)}</span>
                   <span className="text-slate-500">Lon</span>
@@ -247,19 +259,47 @@ function Dashboard() {
                   >
                     {(readout.depth * 100).toFixed(1)} cm
                   </span>
-                  <span className="text-slate-500">Flow</span>
-                  <span className="text-right text-[#5da6ff]">
-                    {readout.flowDirection === null ? 'Unavailable' : `${readout.velocity.toFixed(2)} m/s`}
+                  <span className="text-slate-500">Water surface</span>
+                  <span className="text-right text-slate-200">{(readout.elevation + readout.depth).toFixed(2)} m</span>
+                  <span className="text-slate-500">Cell water volume</span>
+                  <span className="text-right text-slate-200">{readout.cellWaterVolumeM3.toFixed(2)} m³</span>
+                  <span className="text-slate-500">Rainfall</span>
+                  <span className="text-right text-slate-200">{readout.rainfallMmHr.toFixed(1)} mm/hr</span>
+                  <span className="text-slate-500">Velocity east (u)</span>
+                  <span className="text-right text-[#5da6ff]">{readout.velocityX.toFixed(4)} m/s</span>
+                  <span className="text-slate-500">Velocity north (v)</span>
+                  <span className="text-right text-[#5da6ff]">{readout.velocityY.toFixed(4)} m/s</span>
+                  <span className="text-slate-500">Flow speed</span>
+                  <span className="text-right text-[#5da6ff]">{readout.velocity.toFixed(4)} m/s</span>
+                  <span className="text-slate-500">Direction</span>
+                  <span className="text-right text-[#5da6ff]">{readout.flowDirection === null ? '—' : `${readout.flowDirection.toFixed(1)}°`}</span>
+                  <span className="text-slate-500">X momentum (hu)</span>
+                  <span className="text-right text-slate-200">{readout.momentumX.toFixed(5)} m²/s</span>
+                  <span className="text-slate-500">Y momentum (hv)</span>
+                  <span className="text-right text-slate-200">{readout.momentumY.toFixed(5)} m²/s</span>
+                  <span className="text-slate-500">Buildings at risk in cell</span>
+                  <span className="text-right text-slate-200">
+                    {readout.buildingsAtRisk === null
+                      ? state.isDemoMode
+                        ? 'Demo only'
+                        : 'OSM unavailable'
+                      : readout.buildingsAtRisk}
                   </span>
-                  {readout.flowDirection !== null && (
-                    <>
-                      <span className="text-slate-500">Direction</span>
-                      <span className="text-right text-[#5da6ff]">{readout.flowDirection.toFixed(0)}°</span>
-                    </>
-                  )}
+                  <span className="text-slate-500">Road ways at risk in cell</span>
+                  <span className="text-right text-slate-200">
+                    {readout.roadWaysAtRisk === null
+                      ? state.isDemoMode
+                        ? 'Demo only'
+                        : 'OSM unavailable'
+                      : readout.roadWaysAtRisk}
+                  </span>
+                  <span className="text-slate-500">Risk</span>
+                  <span className={cn('text-right font-semibold', readout.depth >= 0.5 || readout.velocity >= 1.5 ? 'text-red-400' : readout.depth >= 0.3 || readout.velocity >= 0.8 ? 'text-amber-300' : readout.depth >= 0.01 ? 'text-cyan-300' : 'text-slate-400')}>
+                    {readout.depth >= 0.5 || readout.velocity >= 1.5 ? 'High' : readout.depth >= 0.3 || readout.velocity >= 0.8 ? 'Moderate' : readout.depth >= 0.01 ? 'Low' : 'Dry'}
+                  </span>
                 </div>
-              )}
-            </div>
+              </section>
+            )}
 
             {/* Loading overlay while a simulation runs */}
             {state.status === 'running' && (

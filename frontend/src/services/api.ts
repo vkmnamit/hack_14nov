@@ -10,6 +10,7 @@ import {
   generateFloodFrames,
   generateTerrain,
   type DemoDataset,
+  type ExposureSummary,
   type FloodFrame,
   type RainfallPattern,
   type TerrainGrid,
@@ -50,6 +51,7 @@ export interface SimulationFrames {
   frames: FloodFrame[];
   terrain?: TerrainGrid;
   diagnostics?: SimulationDiagnostics;
+  exposure?: ExposureSummary;
 }
 
 export interface HealthResponse {
@@ -131,6 +133,8 @@ function isFloodFrame(value: unknown): value is FloodFrame {
   const depths = frame.depths;
   const velocityX = frame.velocityX;
   const velocityY = frame.velocityY;
+  const momentumX = frame.momentumX;
+  const momentumY = frame.momentumY;
   return (
     typeof frame.t === 'number' &&
     (frame.rainfallMmHr === undefined || Number.isFinite(frame.rainfallMmHr)) &&
@@ -142,7 +146,26 @@ function isFloodFrame(value: unknown): value is FloodFrame {
         velocityX.length === depths.length &&
         velocityY.length === depths.length &&
         velocityX.every((velocity) => Number.isFinite(velocity)) &&
-        velocityY.every((velocity) => Number.isFinite(velocity))))
+        velocityY.every((velocity) => Number.isFinite(velocity)))) &&
+    ((momentumX === undefined && momentumY === undefined) ||
+      (Array.isArray(momentumX) &&
+        Array.isArray(momentumY) &&
+        momentumX.length === depths.length &&
+        momentumY.length === depths.length &&
+        momentumX.every((momentum) => Number.isFinite(momentum)) &&
+        momentumY.every((momentum) => Number.isFinite(momentum)))) &&
+    (frame.affectedBuildings === undefined ||
+      (Number.isInteger(frame.affectedBuildings) && frame.affectedBuildings >= 0)) &&
+    (frame.affectedRoadWays === undefined ||
+      (Number.isInteger(frame.affectedRoadWays) && frame.affectedRoadWays >= 0))
+    &&
+    ((frame.buildingsInCell === undefined && frame.roadWaysInCell === undefined) ||
+      (Array.isArray(frame.buildingsInCell) &&
+        Array.isArray(frame.roadWaysInCell) &&
+        frame.buildingsInCell.length === depths.length &&
+        frame.roadWaysInCell.length === depths.length &&
+        frame.buildingsInCell.every((count) => Number.isInteger(count) && count >= 0) &&
+        frame.roadWaysInCell.every((count) => Number.isInteger(count) && count >= 0)))
   );
 }
 
@@ -156,7 +179,37 @@ function isTerrainGrid(value: unknown): value is TerrainGrid {
     size > 1 &&
     Array.isArray(terrain.elevation) &&
     terrain.elevation.length === size * size &&
-    terrain.elevation.every((elevation) => Number.isFinite(elevation))
+    terrain.elevation.every((elevation) => Number.isFinite(elevation)) &&
+    (terrain.cellSizeM === undefined ||
+      (typeof terrain.cellSizeM === 'number' && terrain.cellSizeM > 0)) &&
+    (terrain.bounds === undefined ||
+      (typeof terrain.bounds.west === 'number' &&
+        typeof terrain.bounds.south === 'number' &&
+        typeof terrain.bounds.east === 'number' &&
+        typeof terrain.bounds.north === 'number' &&
+        terrain.bounds.west < terrain.bounds.east &&
+        terrain.bounds.south < terrain.bounds.north))
+  );
+}
+
+function isExposureSummary(value: unknown): value is ExposureSummary {
+  if (!value || typeof value !== 'object') return false;
+  const exposure = value as Partial<ExposureSummary>;
+  return (
+    (exposure.status === 'available' || exposure.status === 'unavailable') &&
+    typeof exposure.source === 'string' &&
+    typeof exposure.thresholdM === 'number' &&
+    Number.isFinite(exposure.thresholdM) &&
+    typeof exposure.method === 'string' &&
+    (exposure.message === undefined ||
+      exposure.message === null ||
+      typeof exposure.message === 'string') &&
+    (exposure.totalBuildings === undefined ||
+      exposure.totalBuildings === null ||
+      (Number.isInteger(exposure.totalBuildings) && exposure.totalBuildings >= 0)) &&
+    (exposure.totalRoadWays === undefined ||
+      exposure.totalRoadWays === null ||
+      (Number.isInteger(exposure.totalRoadWays) && exposure.totalRoadWays >= 0))
   );
 }
 
@@ -210,7 +263,8 @@ function validateFrames(value: SimulationFrames): SimulationFrames {
     !Array.isArray(value.frames) ||
     !value.frames.every(isFloodFrame) ||
     (value.terrain !== undefined && !isTerrainGrid(value.terrain)) ||
-    (value.diagnostics !== undefined && !isSimulationDiagnostics(value.diagnostics))
+    (value.diagnostics !== undefined && !isSimulationDiagnostics(value.diagnostics)) ||
+    (value.exposure !== undefined && !isExposureSummary(value.exposure))
   ) {
     throw new ApiError('Backend returned an invalid simulation frame payload.');
   }

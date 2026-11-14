@@ -391,3 +391,33 @@ and uncalibrated. Obtain a higher-resolution local DEM, observed rainfall,
 and validated land-cover/soil/drainage and flood-observation data before
 using results for research or decisions. Retain the AWS SRTM attribution when
 redistributing elevation data.
+
+## Inspect grid impacts and compare frontend forecasts
+
+The connected dashboard lets you click a forecast grid cell to inspect depth,
+water-surface height, rainfall, `hu`/`hv`, velocity, speed, direction, and
+estimated water volume. When an OpenStreetMap inventory is available, the
+popup and analytics show building and road-way counts. The backend requests
+the OSM Map API for the forecast grid bounds (`VARUNA_OSM_MAP_URL` can override
+the endpoint); it does not use Overpass. Buildings are counted by mapped
+node/way centroid and roads by mapped way intersection with cells whose depth
+is at least 1 cm. These are indicative feature counts, not full building
+footprint or road-length exposure estimates. Missing or incomplete OSM data
+is reported explicitly. Attribute the data to
+[© OpenStreetMap contributors](https://www.openstreetmap.org/copyright)
+under the ODbL.
+
+The dashboard's all-model download calls
+`GET /api/simulation/{id}/comparison-report`. It embeds depth maps for ANUGA,
+ConvLSTM, and adaptive forecasts and reports runtime, depth MAE/RMSE, wet-area
+CSI at 1 cm, velocity-vector MAE on ANUGA-wet cells, and relative water-volume
+error. The report uses local Ollama (`qwen2.5:7b` by default); set
+`VARUNA_OLLAMA_MODEL` or `VARUNA_OLLAMA_GENERATE_URL` to select another local
+model or endpoint. It returns an explicit service error if Ollama is
+unavailable or returns an unsupported ANUGA accuracy claim.
+
+ANUGA is a synthetic simulation reference, not observed flood ground truth.
+The report's metrics describe agreement for one scenario and cannot establish
+real-world accuracy or safety. A volume-relative error is marked undefined
+when the ANUGA reference has zero water volume. The separate `/report` endpoint
+downloads a PNG depth and risk-classification map.
