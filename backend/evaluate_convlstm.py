@@ -461,3 +461,183 @@ def save_spatial_report(
         plt.close(fig)
 
 
+def main() -> None:
+    args = parse_args()
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    torch.set_num_threads(1)
+    model = make_model(args.weights)
+
+    with np.load(args.data, allow_pickle=False) as data, np.load(
+        args.normalization,
+        allow_pickle=False,
+    ) as normalization:
+        verify_normalization(data, normalization)
+        indices = np.flatnonzero(data["split"] == args.split)
+        if indices.size == 0:
+            raise ValueError("Dataset contains no validation scenarios")
+
+        parameters_by_index = {
+            int(index): scenario_parameters(data, int(index))
+            for index in indices
+        }
+        rows: list[dict[str, Any]] = []
+        scenario_info: list[dict[str, Any]] = []
+        predictions_by_scenario: list[np.ndarray] = []
+        references_by_scenario: list[np.ndarray] = []
+        rollout_times: list[float] = []
+
+        for index in indices:
+            index = int(index)
+            prediction, rollout_seconds = run_rollout(
+                model,
+                data,
+                normalization,
+                index,
+                carry_hidden_state=args.carry_hidden_state,
+            )
+            rollout_times.append(rollout_seconds)
+            truth = data["state_sequence"][index]
+            scenario = parameters_by_index[index]
+            scenario_info.append(scenario)
+            predictions_by_scenario.append(
+                np.stack([prediction[minute] for minute in TARGET_MINUTES])
+            )
+            references_by_scenario.append(
+                np.stack([truth[minute] for minute in TARGET_MINUTES])
+            )
+
+            for minute in TARGET_MINUTES:
+                metrics = calculate_metrics(prediction[minute], truth[minute])
+                rows.append(
+                    {
+                        "scenario_index": index,
+                        "scenario_id": scenario["scenario_id"],
+                        "scenario_name": scenario["scenario_name"],
+                        "split": str(data["split"][index]),
+                        "minute": minute,
+                        **metrics,
+                    }
+                )
+
+        predictions_array = np.stack(predictions_by_scenario)
+        references_array = np.stack(references_by_scenario)
+        save_spatial_report(
+            args.output_dir,
+            args.split,
+            scenario_info,
+            predictions_array,
+            references_array,
+        )
+
+        csv_path = args.output_dir / "scenario_metrics.csv"
+        with csv_path.open("w", newline="", encoding="utf-8") as csv_file:
+            fieldnames = list(rows[0])
+            fieldnames[3:3] = [
+                "temporal_profile",
+                "spatial_pattern",
+                "initial_condition",
+                "rainfall_profile_mm_hr",
+                "infiltration_mean_mm_hr",
+                "manning_mean",
+            ]
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in rows:
+                parameters = parameters_by_index[row["scenario_index"]]
+                writer.writerow(
+                    {
+                        **row,
+                        "temporal_profile": parameters["temporal_profile"],
+                        "spatial_pattern": parameters["spatial_pattern"],
+                        "initial_condition": parameters["initial_condition"],
+                        "rainfall_profile_mm_hr": json.dumps(
+                            parameters["rainfall_profile_mm_hr"]
+                        ),
+                        "infiltration_mean_mm_hr": parameters[
+                            "infiltration_mean_mm_hr"
+                        ],
+                        "manning_mean": parameters["manning_mean"],
+                    }
+                )
+
+        by_horizon = {
+            str(minute): aggregate_rows(
+                [row for row in rows if row["minute"] == minute]
+            )
+            for minute in TARGET_MINUTES
+        }
+        grouped = {
+            str(minute): build_grouped_summary(
+                [row for row in rows if row["minute"] == minute],
+                parameters_by_index,
+            )
+            for minute in TARGET_MINUTES
+        }
+        report = {
+            "reference": f"Stored ANUGA trajectories from {args.data.name}",
+            "split": args.split,
+            "scenario_count": int(indices.size),
+            "weights": str(args.weights),
+            "normalization": str(args.normalization),
+            "forecast_minutes": list(TARGET_MINUTES),
+            "wet_threshold_m": WET_THRESHOLD_M,
+            "cell_area_m2": CELL_AREA_M2,
+            "device": "cpu",
+            "hidden_state_carried": args.carry_hidden_state,
+            "torch_version": torch.__version__,
+            "model_parameter_count": sum(
+                parameter.numel() for parameter in model.parameters()
+            ),
+            "rollout_timing_seconds": {
+                "mean": float(np.mean(rollout_times)),
+                "median": float(np.median(rollout_times)),
+                "min": float(np.min(rollout_times)),
+                "max": float(np.max(rollout_times)),
+                "median_ms_per_step": float(
+                    np.median(rollout_times) * 1000 / 60
+                ),
+            },
+            "macro_average_by_horizon": by_horizon,
+            "grouped_metrics_by_horizon": grouped,
+            "scenario_parameters": scenario_info,
+            "metric_definitions": {
+                "depth_and_momentum": "MAE, RMSE, and bias over all grid cells",
+                "wet_depth_mean_relative_error_pct": (
+                    "Mean absolute relative depth error on ANUGA cells with "
+                    "depth >= wet threshold"
+                ),
+                "wet_area_csi": "Intersection over union at the wet threshold",
+                "velocity": (
+                    "u, v, vector, and speed MAE where both ANUGA and "
+                    "ConvLSTM depths meet the wet threshold"
+                ),
+                "water_volume_relative_error_pct": (
+                    "Absolute difference in total depth-integrated volume "
+                    "divided by ANUGA volume"
+                ),
+                "aggregation": (
+                    "Metrics are calculated per scenario, then averaged "
+                    "equally across validation scenarios"
+                ),
+            },
+        }
+        json_path = args.output_dir / "summary.json"
+        json_path.write_text(
+            json.dumps(report, indent=2, allow_nan=False) + "\n",
+            encoding="utf-8",
+        )
+
+    print(f"{args.split.capitalize()} scenarios: {len(indices)}")
+    print(f"Summary: {json_path}")
+    print(f"Per-scenario metrics: {csv_path}")
+    spatial_fields_path = args.output_dir / f"{args.split}_spatial_fields.npz"
+    print(f"Spatial fields: {spatial_fields_path}")
+    print(f"Spatial maps: {args.output_dir / 'maps'}")
+    print(
+        "60-minute macro averages: "
+        + json.dumps(by_horizon["60"], separators=(",", ":"))
+    )
+
+
+if __name__ == "__main__":
+    main()
