@@ -347,7 +347,51 @@ def main() -> None:
                         ),
                     }
                 )
-    print("Scenario simulations complete")
+
+    states_array = np.stack(states_list)
+    raw_rain_array = np.stack(raw_rain_list)
+    effective_rain_array = np.stack(effective_rain_list)
+    initial_states = np.stack(initial_states_list)
+    mass_error_array = np.stack(mass_errors_list)
+    scenario_ids = np.arange(total_scenarios, dtype=np.int16)
+    splits = np.asarray(
+        [record["split"] for record in scenario_records],
+        dtype="U10",
+    )
+    train_ids = np.flatnonzero(splits == "train")
+    train_states = states_array[train_ids]
+    state_mean = train_states.mean(axis=(0, 1, 3, 4), dtype=np.float64)
+    state_std = train_states.std(axis=(0, 1, 3, 4), dtype=np.float64)
+    rain_mean = float(raw_rain_array[train_ids].mean(dtype=np.float64))
+    rain_std = float(raw_rain_array[train_ids].std(dtype=np.float64))
+    effective_rain_mean = float(
+        effective_rain_array[train_ids].mean(dtype=np.float64)
+    )
+    effective_rain_std = float(
+        effective_rain_array[train_ids].std(dtype=np.float64)
+    )
+    train_infiltration = np.asarray(
+        [scenario_records[index]["infiltration_loss_mm_hr"] for index in train_ids],
+        dtype=np.float64,
+    )
+    train_roughness = np.asarray(
+        [scenario_records[index]["manning_n"] for index in train_ids],
+        dtype=np.float64,
+    )
+
+    infiltration_maps = np.stack(
+        [
+            np.full(dem.shape, record["infiltration_loss_mm_hr"], dtype=np.float32)
+            for record in scenario_records
+        ]
+    )
+    roughness_maps = np.stack(
+        [
+            np.full(dem.shape, record["manning_n"], dtype=np.float32)
+            for record in scenario_records
+        ]
+    )
+    print("Training normalization statistics computed")
 
 if __name__ == "__main__":
     main()
