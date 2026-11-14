@@ -214,3 +214,79 @@ def run_rollout(
     return np.stack(predicted), time.perf_counter() - start
 
 
+def mean_or_none(values: np.ndarray) -> float | None:
+    if values.size == 0:
+        return None
+    return float(np.mean(values))
+
+
+def calculate_metrics(predicted: np.ndarray, truth: np.ndarray) -> dict[str, float | None]:
+    result: dict[str, float | None] = {}
+    channel_names = ("depth", "x_momentum", "y_momentum")
+    for channel, name in enumerate(channel_names):
+        error = predicted[channel] - truth[channel]
+        result[f"{name}_mae"] = float(np.mean(np.abs(error)))
+        result[f"{name}_rmse"] = float(np.sqrt(np.mean(error**2)))
+        result[f"{name}_bias"] = float(np.mean(error))
+
+    predicted_depth = predicted[0]
+    truth_depth = truth[0]
+    depth_error = predicted_depth - truth_depth
+    truth_wet = truth_depth >= WET_THRESHOLD_M
+    predicted_wet = predicted_depth >= WET_THRESHOLD_M
+    shared_wet = truth_wet & predicted_wet
+    wet_intersection = np.logical_and(truth_wet, predicted_wet).sum()
+    wet_union = np.logical_or(truth_wet, predicted_wet).sum()
+
+    result["wet_depth_mae_m"] = mean_or_none(np.abs(depth_error[truth_wet]))
+    result["wet_depth_mean_relative_error_pct"] = (
+        float(np.mean(np.abs(depth_error[truth_wet]) / truth_depth[truth_wet]) * 100)
+        if truth_wet.any()
+        else None
+    )
+    result["wet_area_csi"] = (
+        float(wet_intersection / wet_union) if wet_union else 1.0
+    )
+    result["wet_area_precision"] = (
+        float(wet_intersection / predicted_wet.sum())
+        if predicted_wet.any()
+        else None
+    )
+    result["wet_area_recall"] = (
+        float(wet_intersection / truth_wet.sum()) if truth_wet.any() else None
+    )
+
+    truth_volume = float(truth_depth.sum() * CELL_AREA_M2)
+    predicted_volume = float(predicted_depth.sum() * CELL_AREA_M2)
+    result["anuga_water_volume_m3"] = truth_volume
+    result["convlstm_water_volume_m3"] = predicted_volume
+    result["water_volume_relative_error_pct"] = (
+        float(abs(predicted_volume - truth_volume) / truth_volume * 100)
+        if truth_volume > 0
+        else None
+    )
+
+    if shared_wet.any():
+        truth_u = truth[1, shared_wet] / truth_depth[shared_wet]
+        truth_v = truth[2, shared_wet] / truth_depth[shared_wet]
+        predicted_u = predicted[1, shared_wet] / predicted_depth[shared_wet]
+        predicted_v = predicted[2, shared_wet] / predicted_depth[shared_wet]
+        truth_speed = np.hypot(truth_u, truth_v)
+        predicted_speed = np.hypot(predicted_u, predicted_v)
+        result["velocity_u_mae_m_s"] = float(np.mean(np.abs(predicted_u - truth_u)))
+        result["velocity_v_mae_m_s"] = float(np.mean(np.abs(predicted_v - truth_v)))
+        result["velocity_vector_mae_m_s"] = float(
+            np.mean(np.hypot(predicted_u - truth_u, predicted_v - truth_v))
+        )
+        result["speed_mae_m_s"] = float(
+            np.mean(np.abs(predicted_speed - truth_speed))
+        )
+    else:
+        result["velocity_u_mae_m_s"] = None
+        result["velocity_v_mae_m_s"] = None
+        result["velocity_vector_mae_m_s"] = None
+        result["speed_mae_m_s"] = None
+
+    return result
+
+
