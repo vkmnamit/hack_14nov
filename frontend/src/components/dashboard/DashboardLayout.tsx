@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Crosshair, Maximize2, MapPinned, Minimize2, PanelRightClose, RadioTower } from 'lucide-react';
+import { Crosshair, Maximize2, MapPinned, Minimize2, PanelRightClose, RadioTower } from 'lucide-react';
 import CesiumMap, { type CameraPreset } from '@/components/map/CesiumMap';
 import SidebarControls from '@/components/dashboard/SidebarControls';
 import AnalyticsPanel from '@/components/dashboard/AnalyticsPanel';
@@ -17,6 +17,8 @@ interface CellReadout {
   lat: number;
   elevation: number;
   depth: number;
+  velocity: number;
+  flowDirection: number | null;
 }
 
 function Dashboard() {
@@ -79,7 +81,7 @@ function Dashboard() {
         {/* Left sidebar */}
         <aside
           className={cn(
-            'absolute inset-y-3 left-3 z-20 w-[232px] overflow-hidden rounded-2xl border border-[#26332c] bg-[#080b0f]/95 shadow-[0_18px_45px_rgba(0,0,0,0.42)] transition-all duration-300 backdrop-blur-xl lg:left-4',
+            'absolute inset-y-3 left-3 z-20 w-[232px] overflow-hidden rounded-md border border-[var(--varuna-border)] bg-black/80 transition-all duration-300 backdrop-blur-xl lg:left-4',
             collapsed || isFullscreen ? '-translate-x-full' : 'translate-x-0'
           )}
         >
@@ -92,7 +94,7 @@ function Dashboard() {
           !collapsed && 'lg:ml-[248px]',
           !rightCollapsed && 'md:mr-[294px]'
         )}>
-          <div className="relative h-full min-h-0 flex-1 overflow-hidden rounded-2xl border border-[#26332c] bg-[#05090b] shadow-[0_18px_45px_rgba(0,0,0,0.4)]">
+          <div className="relative h-full min-h-0 flex-1 overflow-hidden rounded-md border border-[var(--varuna-border)] bg-black">
             <CesiumMap
               terrain={state.dataset?.terrain ?? null}
               frame={frame}
@@ -114,7 +116,7 @@ function Dashboard() {
               onPick={setReadout}
             />
 
-            <div className="absolute left-4 top-4 z-10 flex items-center gap-1 rounded-sm border border-[#202b34] bg-[#080b0f]/90 p-1 shadow-xl backdrop-blur-xl">
+            <div className="absolute left-4 top-4 z-10 flex items-center gap-1 rounded-md border border-[var(--varuna-border)] bg-black/75 p-1 backdrop-blur-xl">
               {cameraPresets.map((preset) => (
                 <button
                   key={preset.value}
@@ -123,8 +125,8 @@ function Dashboard() {
                   className={cn(
                     'px-2 py-1.5 font-mono-num text-[9px] tracking-[0.08em] transition-colors',
                     cameraPreset === preset.value
-                      ? 'bg-[#b8ff24] text-[#030405]'
-                      : 'text-[#7e8b96] hover:bg-[#111820] hover:text-[#e8edf2]'
+                      ? 'bg-[#b8ff24] text-[#080b05] shadow-[0_0_18px_rgba(184,255,36,0.28)]'
+                      : 'text-[#9a9a9a] hover:bg-white/[0.06] hover:text-white'
                   )}
                 >
                   {preset.label}
@@ -132,11 +134,11 @@ function Dashboard() {
               ))}
             </div>
 
-            <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-sm border border-[#202b34] bg-[#080b0f]/90 p-1 shadow-xl backdrop-blur-xl">
+            <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-md border border-[var(--varuna-border)] bg-black/75 p-1 backdrop-blur-xl">
               <button
                 type="button"
                 onClick={() => setRightCollapsed((value) => !value)}
-                className="flex h-7 w-7 items-center justify-center text-[#7e8b96] transition-colors hover:bg-[#111820] hover:text-[#b8ff24]"
+                className="flex h-7 w-7 items-center justify-center text-[#9a9a9a] transition-colors hover:bg-[#b8ff24]/10 hover:text-[#b8ff24]"
                 aria-label={rightCollapsed ? 'Show analytics panel' : 'Hide analytics panel'}
               >
                 <PanelRightClose size={14} />
@@ -144,7 +146,7 @@ function Dashboard() {
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="flex h-7 w-7 items-center justify-center text-[#7e8b96] transition-colors hover:bg-[#111820] hover:text-[#b8ff24]"
+                className="flex h-7 w-7 items-center justify-center text-[#9a9a9a] transition-colors hover:bg-[#b8ff24]/10 hover:text-[#b8ff24]"
                 aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
               >
                 {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -156,61 +158,51 @@ function Dashboard() {
               <FloodLegend compact demo={state.isDemoMode} />
             </div>
 
-            <div className="pointer-events-none absolute right-4 top-4 z-10 hidden w-64 rounded-sm border border-[#536653] bg-[#0b1415]/85 p-3 shadow-[0_12px_35px_rgba(0,0,0,0.42)] backdrop-blur-xl md:block">
-              <div className="mb-3 flex items-center justify-between border-b border-[#263839] pb-2">
+            <div className="pointer-events-none absolute right-4 top-14 z-10 hidden w-64 rounded-md border border-[var(--varuna-border)] bg-black/75 p-3 backdrop-blur-xl md:block">
+              <div className="mb-3 flex items-center justify-between border-b border-[var(--varuna-border)] pb-2">
                 <div>
-                  <p className="text-[9px] uppercase tracking-[0.2em] text-[#82958a]">Study area</p>
-                  <p className="mt-1 text-sm font-medium text-[#f0f1f3]">{state.location.name}</p>
+                  <p className="text-[9px] text-[#666]">Study area</p>
+                  <p className="mt-1 text-sm font-medium text-white">{state.location.name}</p>
                 </div>
-                <MapPinned size={16} className="text-[#d7ff3f]" />
+                <MapPinned size={16} className="text-[#b8ff24]" />
               </div>
               <div className="grid grid-cols-2 gap-3 font-mono-num text-[10px]">
                 <div>
-                  <p className="text-[#82958a]">ZONE</p>
-                  <p className="mt-1 text-[#d7ff3f]">BLR-EAST-01</p>
+                  <p className="text-[#666]">Zone</p>
+                  <p className="mt-1 text-white">BLR-EAST-01</p>
                 </div>
                 <div>
-                  <p className="text-[#82958a]">GRID</p>
-                  <p className="mt-1 text-[#d7ff3f]">{state.dataset?.terrain.size ?? '—'} × {state.dataset?.terrain.size ?? '—'}</p>
+                  <p className="text-[#666]">Grid</p>
+                  <p className="mt-1 text-white">{state.dataset?.terrain.size ?? '—'} × {state.dataset?.terrain.size ?? '—'}</p>
                 </div>
                 <div>
-                  <p className="text-[#82958a]">LAT</p>
+                  <p className="text-[#666]">Lat</p>
                   <p className="mt-1 text-[#cbd8cf]">{state.location.latitude.toFixed(4)}° N</p>
                 </div>
                 <div>
-                  <p className="text-[#82958a]">LON</p>
+                  <p className="text-[#666]">Lon</p>
                   <p className="mt-1 text-[#cbd8cf]">{state.location.longitude.toFixed(4)}° E</p>
                 </div>
               </div>
             </div>
 
-            <div className="pointer-events-none absolute bottom-4 left-4 z-10 hidden items-center gap-2 rounded-sm border border-[#536653] bg-[#0b1415]/85 px-3 py-2 shadow-lg backdrop-blur-xl sm:flex">
-              <RadioTower size={13} className="text-[#d7ff3f]" />
+            <div className="pointer-events-none absolute bottom-4 left-4 z-10 hidden items-center gap-2 rounded-md border border-[var(--varuna-border)] bg-black/75 px-3 py-2 backdrop-blur-xl sm:flex">
+              <RadioTower size={13} className="text-white" />
               <div>
-                <p className="font-mono-num text-[9px] uppercase tracking-[0.16em] text-[#d7ff3f]">Urban sensor mesh</p>
-                <p className="text-[10px] text-[#9eb0a4]">
+                <p className="text-[9px] text-white">Urban sensor mesh</p>
+                <p className="text-[10px] text-[#9a9a9a]">
                   {state.isDemoMode ? 'Synthetic terrain • Bengaluru, Karnataka' : 'Backend terrain • source reported by API'}
                 </p>
               </div>
             </div>
 
-            {/* Data source status */}
-            <div className="absolute left-4 top-14 z-10 flex items-center gap-1.5 rounded-sm border border-[#202b34] bg-[#080b0f]/90 px-2.5 py-1.5 shadow-lg backdrop-blur-xl">
-              <AlertTriangle size={12} className="shrink-0 text-[#f4ca35]" />
-              <span className="text-[10px] font-medium tracking-wide text-[#f4ca35]">
-                {state.isDemoMode
-                  ? 'DEMO DATA — synthetic terrain, not real forecasts'
-                  : 'CONNECTED MODE — backend data required'}
-              </span>
-            </div>
-
-            <div className="absolute right-4 top-20 z-10 flex flex-col gap-1 rounded-sm border border-[#202b34] bg-[#080b0f]/90 px-2.5 py-2 font-mono-num text-[9px] uppercase tracking-[0.12em] shadow-lg backdrop-blur-xl">
+            <div className="absolute right-4 top-32 z-10 flex flex-col gap-1 rounded-md border border-[var(--varuna-border)] bg-black/75 px-2.5 py-2 font-tabular text-[9px] backdrop-blur-xl">
               <span className={state.rainEnabled && (frame?.rainfallMmHr ?? 0) > 0 ? 'text-[#65c9e7]' : 'text-[#7e8b96]'}>
                 {state.rainEnabled && (frame?.rainfallMmHr ?? 0) > 0
                   ? `RAIN ${frame?.rainfallMmHr?.toFixed(0)} MM/HR`
                   : 'RAIN DATA UNAVAILABLE'}
               </span>
-              <span className={state.flowEnabled && frame?.velocityX && frame.velocityY ? 'text-[#b8ff24]' : 'text-[#ffb547]'}>
+              <span className={state.flowEnabled && frame?.velocityX && frame.velocityY ? 'text-white' : 'text-[#d7a12d]'}>
                 {state.flowEnabled && frame?.velocityX && frame.velocityY
                   ? 'FLOW DATA AVAILABLE'
                   : 'FLOW DATA UNAVAILABLE'}
@@ -223,12 +215,12 @@ function Dashboard() {
             {/* Click-to-inspect readout */}
             <div
               className={cn(
-                'absolute left-4 top-12 z-10 rounded-sm border border-[#646772] bg-[#363843]/95 px-3 py-2 shadow-lg backdrop-blur transition-opacity duration-200',
+                'absolute left-4 top-12 z-10 rounded-md border border-[var(--varuna-border-strong)] bg-black/90 px-3 py-2 backdrop-blur transition-opacity duration-200',
                 readout ? 'opacity-100' : 'pointer-events-none opacity-0'
               )}
             >
               <p className="mb-1 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-widest text-slate-400">
-                <Crosshair size={10} className="text-[#00D4FF]" /> Cell inspector
+                <Crosshair size={10} className="text-[var(--varuna-blue-2)]" /> Cell inspector
               </p>
               {readout && (
                 <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono-num text-[11px]">
@@ -253,14 +245,24 @@ function Dashboard() {
                   >
                     {(readout.depth * 100).toFixed(1)} cm
                   </span>
+                  <span className="text-slate-500">Flow</span>
+                  <span className="text-right text-[#5da6ff]">
+                    {readout.flowDirection === null ? 'Unavailable' : `${readout.velocity.toFixed(2)} m/s`}
+                  </span>
+                  {readout.flowDirection !== null && (
+                    <>
+                      <span className="text-slate-500">Direction</span>
+                      <span className="text-right text-[#5da6ff]">{readout.flowDirection.toFixed(0)}°</span>
+                    </>
+                  )}
                 </div>
               )}
             </div>
 
             {/* Loading overlay while a simulation runs */}
             {state.status === 'running' && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#252730]/65 backdrop-blur-sm">
-                <div className="w-72 rounded-sm border border-[#5c5f6b] bg-[#3a3c46] p-5 text-center shadow-2xl">
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                <div className="w-72 rounded-md border border-[var(--varuna-border-strong)] bg-[#050505] p-5 text-center">
                   <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#1b2840] border-t-[#00D4FF]" />
                   <p className="mt-3 text-sm font-medium text-slate-200">Computing flood frames</p>
                   <p className="mt-1 text-xs text-slate-500">
@@ -268,7 +270,7 @@ function Dashboard() {
                   </p>
                   <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[#1b2840]">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#247BFF] to-[#00D4FF] transition-all duration-300"
+                      className="h-full rounded-full bg-[var(--varuna-blue-2)] transition-all duration-300"
                       style={{ width: `${state.progress}%` }}
                     />
                   </div>
@@ -283,7 +285,7 @@ function Dashboard() {
 
         {/* Right sidebar */}
         <aside className={cn(
-          'absolute inset-y-3 right-3 z-20 hidden w-[278px] overflow-hidden rounded-2xl border border-[#26332c] bg-[#080b0f]/95 shadow-[0_18px_45px_rgba(0,0,0,0.42)] transition-all duration-300 backdrop-blur-xl md:right-4 md:block',
+          'absolute inset-y-3 right-3 z-20 hidden w-[278px] overflow-hidden rounded-md border border-[var(--varuna-border)] bg-black/80 transition-all duration-300 backdrop-blur-xl md:right-4 md:block',
           (rightCollapsed || isFullscreen) && 'translate-x-full'
         )}>
           {activeView === 'forecast' ? <AnalyticsPanel /> : <ModelPerformancePanel />}

@@ -25,18 +25,18 @@ const PATTERN_OPTIONS: { value: RainfallPattern; label: string }[] = [
 ];
 
 const STATUS_STYLES: Record<SimulationStatus, string> = {
-  ready: 'border-[#334238] bg-[#101613] text-[#aeb9b0]',
-  running: 'border-[#65c9e7]/50 bg-[#65c9e7]/10 text-[#65c9e7]',
-  paused: 'border-[#f4ca35]/50 bg-[#f4ca35]/10 text-[#f4ca35]',
-  completed: 'border-[#9ad52d]/50 bg-[#9ad52d]/10 text-[#b7eb62]',
+  ready: 'border-[var(--varuna-border)] bg-white/[0.03] text-[#9a9a9a]',
+  running: 'border-white/30 bg-white/[0.08] text-white',
+  paused: 'border-[#d7a12d]/50 bg-[#d7a12d]/10 text-[#d7a12d]',
+  completed: 'border-white/30 bg-white/[0.08] text-white',
   error: 'border-[#ff3939]/50 bg-[#ff3939]/10 text-[#ff7777]',
 };
 
 function SectionTitle({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="mb-3 flex items-center gap-2 border-b border-[#1b2821] pb-2">
-      <span className="text-[#9ad52d]">{icon}</span>
-      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-[#e2e3e6]">
+    <div className="mb-3 flex items-center gap-2 border-b border-[var(--varuna-border)] pb-2">
+      <span className="text-[#9a9a9a]">{icon}</span>
+      <h3 className="text-[11px] font-semibold text-white">
         {children}
       </h3>
     </div>
@@ -67,7 +67,7 @@ export default function SidebarControls() {
   const hasResult = state.dataset !== null && state.dataset.frames.length > 0;
 
   return (
-    <div className="panel-scroll flex h-full flex-col gap-4 overflow-y-auto bg-[#080b0c] p-3">
+    <div className="panel-scroll flex h-full flex-col gap-4 overflow-y-auto bg-black/70 p-3">
       {/* Location */}
       <section>
         <SectionTitle icon={<MapPin size={14} />}>Location</SectionTitle>
@@ -75,10 +75,10 @@ export default function SidebarControls() {
           const loc = state.locations.find((l) => l.id === id);
           if (loc) setLocation(loc);
         }}>
-          <SelectTrigger className="w-full border-[#30453f] bg-[#111c1d] text-sm">
+          <SelectTrigger className="w-full border-[var(--varuna-border-strong)] bg-black text-sm">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="border-[#30453f] bg-[#111c1d]">
+          <SelectContent className="border-[var(--varuna-border-strong)] bg-[#050505]">
             {state.locations.map((loc) => (
               <SelectItem key={loc.id} value={loc.id}>
                 {loc.name}
@@ -95,7 +95,7 @@ export default function SidebarControls() {
 
         <div className="mb-1 flex items-baseline justify-between">
           <Label className="text-xs text-slate-400">Intensity</Label>
-          <span className="font-mono-num text-sm font-semibold text-[#b7eb62]">
+          <span className="font-tabular text-sm font-semibold text-white">
             {state.rainfallIntensity} <span className="text-xs text-slate-400">mm/hr</span>
           </span>
         </div>
@@ -105,13 +105,13 @@ export default function SidebarControls() {
           max={150}
           step={5}
           onValueChange={([v]) => setIntensity(v)}
-          className="my-2 [&_[data-radix-slider-track]]:bg-[#30453f] [&_[data-radix-slider-range]]:bg-[#d7ff3f]"
+          className="my-2 [&_[data-radix-slider-track]]:bg-white/20 [&_[data-radix-slider-range]]:bg-white"
           aria-label="Rainfall intensity in millimetres per hour"
         />
 
         <div className="mb-1 mt-4 flex items-baseline justify-between">
           <Label className="text-xs text-slate-400">Duration</Label>
-          <span className="font-mono-num text-sm font-semibold text-[#b7eb62]">
+          <span className="font-tabular text-sm font-semibold text-white">
             {state.durationMin} <span className="text-xs text-slate-400">min</span>
           </span>
         </div>
@@ -123,8 +123,8 @@ export default function SidebarControls() {
               className={cn(
                 'rounded border px-1 py-1.5 font-mono-num text-xs transition-colors',
                 state.durationMin === d
-                  ? 'border-[#9ad52d]/70 bg-[#9ad52d]/12 text-[#b7eb62]'
-                  : 'border-[#30453f] bg-[#111c1d] text-slate-400 hover:border-[#82958a] hover:text-slate-200'
+                  ? 'border-white bg-white/[0.08] text-white'
+                  : 'border-[var(--varuna-border-strong)] bg-black text-slate-400 hover:border-white hover:text-white'
               )}
             >
               {d}
@@ -136,10 +136,10 @@ export default function SidebarControls() {
           <Label className="text-xs text-slate-400">Pattern</Label>
         </div>
         <Select value={state.pattern} onValueChange={(v) => setPattern(v as RainfallPattern)}>
-          <SelectTrigger className="w-full border-[#30453f] bg-[#111c1d] text-sm">
+          <SelectTrigger className="w-full border-[var(--varuna-border-strong)] bg-black text-sm">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="border-[#30453f] bg-[#111c1d]">
+          <SelectContent className="border-[var(--varuna-border-strong)] bg-[#050505]">
             {PATTERN_OPTIONS.map((p) => (
               <SelectItem key={p.value} value={p.value}>
                 {p.label}
@@ -149,7 +149,7 @@ export default function SidebarControls() {
         </Select>
 
         {/* Hyetograph preview: storm shape updates live with intensity, duration, pattern */}
-        <div className="mt-3 rounded border border-[#263839] bg-[#111c1d] p-2">
+        <div className="mt-3 rounded-md border border-[var(--varuna-border)] bg-black/60 p-2">
           <p className="mb-1 text-[9px] font-medium uppercase tracking-wider text-slate-500">
             Storm profile
           </p>
@@ -165,14 +165,14 @@ export default function SidebarControls() {
             >
                 <defs>
                   <linearGradient id="rainFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#b7eb62" stopOpacity={0.7} />
-                    <stop offset="100%" stopColor="#b7eb62" stopOpacity={0.05} />
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <Area
                   type="monotone"
                   dataKey="r"
-                  stroke="#b7eb62"
+                  stroke="#ffffff"
                   strokeWidth={1.5}
                   fill="url(#rainFill)"
                   isAnimationActive={false}
@@ -199,8 +199,8 @@ export default function SidebarControls() {
               className={cn(
                 'flex w-full items-center justify-between rounded border px-2.5 py-2 text-left text-[11px] transition-colors',
                 control.value
-                  ? 'border-[#9ad52d]/50 bg-[#9ad52d]/10 text-[#b7eb62]'
-                  : 'border-[#30453f] bg-[#111c1d] text-slate-400',
+                  ? 'border-[#9ad52d]/60 bg-[#b8ff24]/10 text-[#b8ff24]'
+                  : 'border-[var(--varuna-border-strong)] bg-black text-slate-400',
                 control.disabled && 'cursor-not-allowed opacity-45'
               )}
             >
@@ -210,10 +210,10 @@ export default function SidebarControls() {
           ))}
         </div>
 
-        <div className="mt-3 rounded border border-[#263839] bg-[#111c1d] p-2.5">
+        <div className="mt-3 rounded-md border border-[var(--varuna-border)] bg-black/60 p-2.5">
           <div className="mb-1 flex items-center justify-between">
             <Label className="flex items-center gap-1.5 text-[10px] text-slate-400"><Wind size={12} /> Wind direction</Label>
-            <span className="font-mono-num text-[10px] text-[#b7eb62]">{state.windDirection}°</span>
+            <span className="font-tabular text-[10px] text-white">{state.windDirection}°</span>
           </div>
           <Slider
             value={[state.windDirection]}
@@ -225,7 +225,7 @@ export default function SidebarControls() {
           />
           <div className="mb-1 mt-3 flex items-center justify-between">
             <Label className="text-[10px] text-slate-400">Wind speed</Label>
-            <span className="font-mono-num text-[10px] text-[#b7eb62]">{state.windSpeed} m/s</span>
+            <span className="font-tabular text-[10px] text-white">{state.windSpeed} m/s</span>
           </div>
           <Slider
             value={[state.windSpeed]}
@@ -237,7 +237,7 @@ export default function SidebarControls() {
           />
           <div className="mb-1 mt-3 flex items-center justify-between">
             <Label className="text-[10px] text-slate-400">Flow speed</Label>
-            <span className="font-mono-num text-[10px] text-[#b7eb62]">{state.flowSpeedMultiplier.toFixed(1)}x</span>
+            <span className="font-tabular text-[10px] text-white">{state.flowSpeedMultiplier.toFixed(1)}x</span>
           </div>
           <Slider
             value={[state.flowSpeedMultiplier]}
@@ -277,7 +277,7 @@ export default function SidebarControls() {
           <Button
             onClick={runSimulation}
             disabled={isRunning}
-            className="h-9 bg-[#d7ff3f] px-2 text-[#11180d] hover:bg-[#efffb2] hover:text-[#11180d]"
+            className="h-9 bg-[#b8ff24] px-2 text-[#080b05] hover:bg-[#d7ff70] hover:text-[#080b05]"
             title="Run the flood simulation with the current settings"
           >
             <Play size={14} className="mr-1" /> Run
@@ -286,7 +286,7 @@ export default function SidebarControls() {
             onClick={state.playing ? pause : resume}
             disabled={!hasResult || state.status === 'ready'}
             variant="outline"
-            className="h-9 border-[#30453f] bg-[#111c1d] px-2 text-slate-200 hover:border-[#82958a] hover:bg-[#172424]"
+            className="h-9 border-[var(--varuna-border-strong)] bg-transparent px-2 text-slate-200 hover:border-white hover:bg-white/[0.06]"
             title="Pause or resume the simulation playback"
           >
             {state.playing ? <Pause size={14} className="mr-1" /> : <Play size={14} className="mr-1" />}
@@ -295,7 +295,7 @@ export default function SidebarControls() {
           <Button
             onClick={reset}
             variant="outline"
-            className="h-9 border-[#30453f] bg-[#111c1d] px-2 text-slate-200 hover:border-[#82958a] hover:bg-[#172424]"
+            className="h-9 border-[var(--varuna-border-strong)] bg-transparent px-2 text-slate-200 hover:border-white hover:bg-white/[0.06]"
             title="Reset the simulation and clear results"
           >
             <RotateCcw size={14} className="mr-1" /> Reset
@@ -318,9 +318,9 @@ export default function SidebarControls() {
               {state.status}
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#202b24]">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#6aa91b] to-[#b7eb62] transition-all duration-300"
+              className="h-full rounded-full bg-white transition-all duration-300"
               style={{ width: `${state.progress}%` }}
             />
           </div>
@@ -332,7 +332,7 @@ export default function SidebarControls() {
         </div>
 
         {hasResult && state.simulationMeta && (
-          <div className="mt-4 rounded border border-[#263839] bg-[#111c1d] p-2.5">
+          <div className="mt-4 rounded-md border border-[var(--varuna-border)] bg-black/60 p-2.5">
             <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-500">
               <Timer size={11} /> Simulation
             </div>
@@ -355,9 +355,9 @@ export default function SidebarControls() {
         )}
       </section>
 
-      <div className="mt-auto rounded border border-[#263839] bg-[#111c1d] p-3">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#f4ca35]">
-          <Zap size={11} /> {state.isDemoMode ? 'Demo mode' : 'Connected mode'}
+      <div className="mt-auto rounded-md border border-[var(--varuna-border)] bg-black/60 p-3">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-white">
+          <Zap size={11} /> {state.isDemoMode ? 'Data source' : 'Connected mode'}
         </div>
         <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
           {state.isDemoMode

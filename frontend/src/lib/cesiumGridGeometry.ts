@@ -35,6 +35,8 @@ export interface GridGeometryOptions {
   /** Constant lift (metres) applied to every vertex — used to keep the flood
    *  surface from z-fighting with the terrain at shallow depths. */
   heightOffset?: number;
+  /** Visual-only depth multiplier; filtering still uses the source depths. */
+  depthScale?: number;
 }
 
 /** ENU unit vectors at a geodetic position, for rotating local normals to ECEF. */
@@ -76,9 +78,11 @@ export function buildGridGeometry(
   const n = terrain.size;
   const elev = terrain.elevation;
   const heightOffset = options.heightOffset ?? 0;
+  const depthScale = options.depthScale ?? 1;
 
   const positions: number[] = [];
   const normals: number[] = [];
+  const texcoords: number[] = [];
   const indices: number[] = [];
 
   const dLon = (rect.east - rect.west) / n;
@@ -89,13 +93,14 @@ export function buildGridGeometry(
       const idx = row * n + col;
       const lon = rect.west + (col + 0.5) * dLon;
       const lat = rect.north - (row + 0.5) * dLat;
-      const height = elev[idx] + (depths ? depths[idx] : 0) + heightOffset;
+      const height = elev[idx] + (depths ? depths[idx] * depthScale : 0) + heightOffset;
 
       const surface = cell(lon, lat, height);
       positions.push(surface.x, surface.y, surface.z);
+      texcoords.push(col / Math.max(1, n - 1), row / Math.max(1, n - 1));
 
       // Height-field normal in local ENU frame, rotated to ECEF.
-      const heightAt = (sample: number) => elev[sample] + (depths ? depths[sample] : 0);
+      const heightAt = (sample: number) => elev[sample] + (depths ? depths[sample] * depthScale : 0);
       const hL = heightAt(row * n + Math.max(0, col - 1));
       const hR = heightAt(row * n + Math.min(n - 1, col + 1));
       const hU = heightAt(Math.max(0, row - 1) * n + col);
@@ -157,10 +162,12 @@ export function buildGridGeometry(
       const top = cell(lon, lat, elev[idx] + heightOffset);
       positions.push(top.x, top.y, top.z);
       normals.push(0, 0, 1); // walls are unlit-looking; up normal keeps them uniform
+      texcoords.push(col / Math.max(1, n - 1), row / Math.max(1, n - 1));
 
       const bottom = cell(lon, lat, 0);
       positions.push(bottom.x, bottom.y, bottom.z);
       normals.push(0, 0, 1);
+      texcoords.push(col / Math.max(1, n - 1), row / Math.max(1, n - 1));
     }
     for (let i = 0; i < boundary.length; i++) {
       const a = topStart + i;
@@ -189,6 +196,11 @@ export function buildGridGeometry(
         componentDatatype: ComponentDatatype.FLOAT,
         componentsPerAttribute: 3,
         values: new Float32Array(normals),
+      }),
+      st: new GeometryAttribute({
+        componentDatatype: ComponentDatatype.FLOAT,
+        componentsPerAttribute: 2,
+        values: new Float32Array(texcoords),
       }),
     } as GeometryAttributes,
     indices: new Uint32Array(indices),

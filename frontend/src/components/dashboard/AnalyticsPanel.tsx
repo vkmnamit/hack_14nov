@@ -19,12 +19,12 @@ export default function AnalyticsPanel() {
     [];
 
   return (
-    <div className="panel-scroll flex h-full flex-col gap-3 overflow-y-auto bg-[#080b0c] p-3">
+    <div className="panel-scroll flex h-full flex-col gap-3 overflow-y-auto bg-black/70 p-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-300">
-          Forecast Analytics
+        <h2 className="text-xs font-semibold text-white">
+          Forecast analytics
         </h2>
-        <span className="rounded-lg border border-[#FFB547]/40 bg-[#FFB547]/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-[#FFB547]">
+        <span className="border border-[var(--varuna-border)] px-2 py-1 text-[9px] text-[#9a9a9a]">
           {state.isDemoMode ? 'Illustrative' : 'Backend'}
         </span>
       </div>
@@ -72,25 +72,25 @@ export default function AnalyticsPanel() {
       </div>
 
       {/* Depth statistics */}
-      <section className="rounded-sm border border-[#263839] bg-[#111c1d] p-3 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
-        <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-300">
-          <Ruler size={12} className="text-[#00D4FF]" /> Depth Statistics
+      <section className="rounded-md border border-[var(--varuna-border)] bg-black/60 p-3">
+        <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-white">
+          <Ruler size={12} className="text-[var(--varuna-blue-2)]" /> Depth statistics
         </h3>
-        <div className="grid grid-cols-3 gap-2 font-mono-num text-center">
+        <div className="grid grid-cols-3 gap-2 font-tabular text-center">
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-slate-500">Max</p>
-            <p className="text-sm font-semibold text-[#00D4FF]">
+            <p className="text-[10px] text-slate-500">Max</p>
+            <p className="text-sm font-semibold text-[var(--varuna-blue-2)]">
               {stats ? `${(stats.maxDepth * 100).toFixed(1)}` : '—'} <span className="text-[10px] text-slate-500">cm</span>
             </p>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-slate-500">Mean*</p>
+            <p className="text-[10px] text-slate-500">Mean*</p>
             <p className="text-sm font-semibold text-slate-200">
               {stats ? `${(stats.meanDepth * 100).toFixed(1)}` : '—'} <span className="text-[10px] text-slate-500">cm</span>
             </p>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-slate-500">Wet Cells</p>
+            <p className="text-[10px] text-slate-500">Wet cells</p>
             <p className="text-sm font-semibold text-slate-200">
               {stats ? (stats.floodedFraction * 100).toFixed(0) : '—'} <span className="text-[10px] text-slate-500">%</span>
             </p>
@@ -101,8 +101,8 @@ export default function AnalyticsPanel() {
         </p>
 
         {/* Severity distribution */}
-        <h3 className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-widest text-slate-300">
-          Severity Distribution
+        <h3 className="mb-2 mt-4 text-[11px] font-semibold text-white">
+          Severity distribution
         </h3>
         <div className="h-32">
           {chartData.length > 0 ? (
