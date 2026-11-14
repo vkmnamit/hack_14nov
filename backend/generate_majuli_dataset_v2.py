@@ -72,6 +72,27 @@ def rainfall_multiplier(
         )
     raise ValueError(f"Unknown rainfall pattern {pattern_name!r}")
 
+def initial_depth_map(
+    dem: np.ndarray,
+    condition: str,
+) -> np.ndarray:
+    if condition == "dry":
+        return np.zeros_like(dem, dtype=np.float64)
+    if condition == "uniform_0p02m":
+        return np.full_like(dem, 0.02, dtype=np.float64)
+    if condition == "lowland_puddle":
+        return np.where(dem <= dem.min() + 0.10, dem.min() + 0.10 - dem, 0.0)
+    raise ValueError(f"Unknown initial condition {condition!r}")
+
+def split_for(temporal_index: int, spatial_index: int) -> str:
+    validation_pattern = temporal_index % len(SPATIAL_PATTERNS)
+    test_pattern = (temporal_index + 2) % len(SPATIAL_PATTERNS)
+    if spatial_index == validation_pattern:
+        return "validation"
+    if spatial_index == test_pattern:
+        return "test"
+    return "train"
+
 def main() -> None:
     pass
 
