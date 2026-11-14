@@ -47,6 +47,31 @@ REPLICATES_PER_RAINFALL_PATTERN = 3
 FRAME_COUNT = int(STORM_DURATION_S // OUTPUT_STEP_S) + 1
 
 
+def rainfall_multiplier(
+    pattern_name: str,
+    x: np.ndarray,
+    y: np.ndarray,
+    xll: float,
+    yll: float,
+) -> np.ndarray:
+    width_m = GRID_CELLS * CELL_SIZE_M
+    x_fraction = np.clip((x - xll) / width_m, 0.0, 1.0)
+    y_fraction = np.clip((y - yll) / width_m, 0.0, 1.0)
+    if pattern_name == "uniform":
+        return np.ones_like(x_fraction)
+    if pattern_name == "east_west_gradient":
+        return 0.4 + 1.2 * x_fraction
+    if pattern_name == "north_south_gradient":
+        return 0.4 + 1.2 * y_fraction
+    if pattern_name == "localized_cell":
+        return 0.8 + 0.8 * np.exp(
+            -(
+                ((x_fraction - 0.68) / 0.22) ** 2
+                + ((y_fraction - 0.34) / 0.27) ** 2
+            )
+        )
+    raise ValueError(f"Unknown rainfall pattern {pattern_name!r}")
+
 def main() -> None:
     pass
 
