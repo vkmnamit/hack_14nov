@@ -97,3 +97,58 @@ class ConvLSTMSurrogate(nn.Module):
         return self.output_layer(h_state), state
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data", type=Path, default=DATA_PATH)
+    parser.add_argument("--weights", type=Path, default=WEIGHTS_PATH)
+    parser.add_argument("--normalization", type=Path, default=NORMALIZATION_PATH)
+    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
+    parser.add_argument(
+        "--split",
+        choices=("validation", "test"),
+        default="validation",
+        help="Scenario split to evaluate.",
+    )
+    parser.add_argument(
+        "--carry-hidden-state",
+        action="store_true",
+        help="Carry ConvLSTM state between autoregressive rollout steps.",
+    )
+    return parser.parse_args()
+
+
+def verify_normalization(data: Any, normalization: Any) -> None:
+    pairs = {
+        "state_mean": "normalization_state_mean",
+        "state_std": "normalization_state_std",
+        "rain_mean": "normalization_raw_rainfall_mean_mm_hr",
+        "rain_std": "normalization_raw_rainfall_std_mm_hr",
+        "infil_mean": "normalization_infiltration_mean_mm_hr",
+        "infil_std": "normalization_infiltration_std_mm_hr",
+        "elev_mean": "normalization_elevation_mean_m",
+        "elev_std": "normalization_elevation_std_m",
+        "mann_mean": "normalization_manning_mean",
+        "mann_std": "normalization_manning_std",
+    }
+    for model_key, data_key in pairs.items():
+        if not np.allclose(
+            normalization[model_key],
+            data[data_key],
+            rtol=1e-5,
+            atol=1e-7,
+        ):
+            raise ValueError(f"Normalization mismatch for {model_key}")
+
+
+def make_model(weights_path: Path) -> ConvLSTMSurrogate:
+    model = ConvLSTMSurrogate()
+    state_dict = torch.load(
+        weights_path,
+        map_location="cpu",
+        weights_only=True,
+    )
+    model.load_state_dict(state_dict, strict=True)
+    model.eval()
+    return model
+
+
