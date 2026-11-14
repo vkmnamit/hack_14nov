@@ -91,11 +91,6 @@ def normalized_static_inputs(
         dtype=torch.float32,
         device=device,
     )
-    elevation_m = torch.as_tensor(
-        data["elevation_m"],
-        dtype=torch.float32,
-        device=device,
-    )
     infiltration_norm = (
         infiltration - float(normalization["infil_mean"])
     ) / (float(normalization["infil_std"]) + 1e-8)
@@ -149,6 +144,16 @@ def train_epoch(
         )
         effective_rainfall = torch.as_tensor(
             data["rainfall_effective_m_s"][scenario_index, :TIMESTEPS],
+            dtype=torch.float32,
+            device=device,
+        )
+        elevation_m = torch.as_tensor(
+            data["elevation_m"],
+            dtype=torch.float32,
+            device=device,
+        )
+        manning = torch.as_tensor(
+            data["manning_n"][scenario_index],
             dtype=torch.float32,
             device=device,
         )
