@@ -15,13 +15,15 @@ MANNING_N = 0.05
 
 
 def _rainfall_rate(pattern: str, intensity: float, duration_s: float, time_s: float) -> float:
+    if time_s >= duration_s:
+        return 0.0
     position = min(max(time_s / max(duration_s, 1.0), 0.0), 1.0)
     if pattern == "increasing":
         multiplier = position
     elif pattern == "peak":
         multiplier = position * 2.0 if position < 0.5 else 2.0 - position * 2.0
     else:
-        multiplier = 1.0 if position < 1.0 else 0.0
+        multiplier = 1.0
     return max(intensity * multiplier - INFILTRATION_MM_HR, 0.0) / 3_600_000.0
 
 
@@ -32,6 +34,7 @@ def run(
     rainfall_intensity_mm_hr: float,
     duration_min: int,
     pattern: str,
+    forecast_duration_min: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Run ANUGA and return minutes, rasterized depths, and rasterized velocity."""
     try:
@@ -57,6 +60,7 @@ def run(
         return dem[GRID_SIZE - 1 - rows_from_south, columns]
 
     domain.set_name("varuna_live_anuga")
+    domain.set_store(False)
     domain.set_quantity("elevation", function=elevation_at)
     domain.set_quantity("stage", expression="elevation")
     domain.set_quantity("friction", MANNING_N)
@@ -65,9 +69,10 @@ def run(
         {"left": reflective, "right": reflective, "top": reflective, "bottom": reflective}
     )
 
-    duration_s = duration_min * 60.0
+    rain_duration_s = duration_min * 60.0
+    forecast_duration_s = (forecast_duration_min or duration_min) * 60.0
     rate: Callable[[float], float] = lambda time_s: _rainfall_rate(
-        pattern, rainfall_intensity_mm_hr, duration_s, time_s
+        pattern, rainfall_intensity_mm_hr, rain_duration_s, time_s
     )
     anuga.Rate_operator(domain, rate=rate)
 
@@ -79,7 +84,7 @@ def run(
 
     for model_time in domain.evolve(
         yieldstep=OUTPUT_STEP_S,
-        finaltime=duration_s,
+        finaltime=forecast_duration_s,
     ):
         elevation = domain.quantities["elevation"].centroid_values
         stage = domain.quantities["stage"].centroid_values.copy()

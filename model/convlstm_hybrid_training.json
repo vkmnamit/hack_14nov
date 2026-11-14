@@ -1,0 +1,95 @@
+{
+  "device": "cpu",
+  "training_scenarios": 36,
+  "validation_scenarios": 18,
+  "validation_selection_metric": "mean of depth-MAE ratio, water-volume-error ratio, and CSI-miss ratio relative to the physics-only validation baseline; volume baseline has a 1 percentage-point floor",
+  "initial_checkpoint_validation": {
+    "depth_mae_at_15min": 0.03129504954752823,
+    "wet_area_csi_at_15min": 0.2989043425556193,
+    "wet_depth_mean_relative_error_pct_at_15min": 206.95067638821072,
+    "water_volume_relative_error_pct_at_15min": 120.59678876484044,
+    "depth_mae_at_30min": 0.06840782923003037,
+    "wet_area_csi_at_30min": 0.2922684234562752,
+    "wet_depth_mean_relative_error_pct_at_30min": 299.25734456380206,
+    "water_volume_relative_error_pct_at_30min": 169.98908066090382,
+    "depth_mae_at_60min": 0.09586923941969872,
+    "wet_area_csi_at_60min": 0.283430039277443,
+    "wet_depth_mean_relative_error_pct_at_60min": 273.8981713189019,
+    "water_volume_relative_error_pct_at_60min": 117.21747779713456
+  },
+  "physics_baseline_validation": {
+    "depth_mae_at_15min": 0.009853679867875244,
+    "wet_area_csi_at_15min": 0.6036218216290896,
+    "wet_depth_mean_relative_error_pct_at_15min": 53.94195916917589,
+    "water_volume_relative_error_pct_at_15min": 0.0002081166407762456,
+    "depth_mae_at_30min": 0.017635834248115618,
+    "wet_area_csi_at_30min": 0.6117707952858702,
+    "wet_depth_mean_relative_error_pct_at_30min": 69.75365108913846,
+    "water_volume_relative_error_pct_at_30min": 0.0002241135922887937,
+    "depth_mae_at_60min": 0.028969293356769614,
+    "wet_area_csi_at_60min": 0.6050833952805657,
+    "wet_depth_mean_relative_error_pct_at_60min": 82.24831178453233,
+    "water_volume_relative_error_pct_at_60min": 0.00024538803307101877
+  },
+  "chunk_length": 10,
+  "mass_loss_weight": 1e-08,
+  "initialization_mode": "absolute",
+  "physics_solver": {
+    "method": "hydrostatic-reconstruction Rusanov flux",
+    "gravity_m_s2": 9.81,
+    "cell_size_m": 30.0,
+    "cfl": 0.45,
+    "rainfall_units": "effective metres per second",
+    "friction": "Manning",
+    "boundaries": "reflective",
+    "correction": "ConvLSTM residual in normalized state units"
+  },
+  "initial_weights": "/Users/namitraj/Desktop/hacka_14nov/model/convlstm_surrogate.pt",
+  "best_weights": "/Users/namitraj/Desktop/hacka_14nov/model/convlstm_hybrid.pt",
+  "best_epoch": 1,
+  "best_validation_score": 0.9710947574545473,
+  "epochs": [
+    {
+      "epoch": 1,
+      "train_loss": 173.64582619229677,
+      "teacher_forcing_ratio": 0.5,
+      "validation": {
+        "depth_mae_at_15min": 0.014964740490540862,
+        "wet_area_csi_at_15min": 0.4167409644242851,
+        "wet_depth_mean_relative_error_pct_at_15min": 102.6034664577908,
+        "water_volume_relative_error_pct_at_15min": 0.00032118709369183664,
+        "depth_mae_at_30min": 0.026055254973471165,
+        "wet_area_csi_at_30min": 0.38246405270003125,
+        "wet_depth_mean_relative_error_pct_at_30min": 114.1325085957845,
+        "water_volume_relative_error_pct_at_30min": 0.0003271052803779683,
+        "depth_mae_at_60min": 0.03903627530154255,
+        "wet_area_csi_at_60min": 0.38177971465309785,
+        "wet_depth_mean_relative_error_pct_at_60min": 119.94407145182292,
+        "water_volume_relative_error_pct_at_60min": 0.000333853410180227
+      },
+      "validation_score": 0.9710947574545473,
+      "seconds": 96.20175274999929
+    },
+    {
+      "epoch": 2,
+      "train_loss": 151.36562715579444,
+      "teacher_forcing_ratio": 0.0,
+      "validation": {
+        "depth_mae_at_15min": 0.01760077939575745,
+        "wet_area_csi_at_15min": 0.32177652250407784,
+        "wet_depth_mean_relative_error_pct_at_15min": 98.53984239366319,
+        "water_volume_relative_error_pct_at_15min": 0.00028181822995587306,
+        "depth_mae_at_30min": 0.02964704406137268,
+        "wet_area_csi_at_30min": 0.33516379116206757,
+        "wet_depth_mean_relative_error_pct_at_30min": 124.76287163628473,
+        "water_volume_relative_error_pct_at_30min": 0.00028226214979654266,
+        "depth_mae_at_60min": 0.04562072900848256,
+        "wet_area_csi_at_60min": 0.3354969580658893,
+        "wet_depth_mean_relative_error_pct_at_60min": 141.55769390530057,
+        "water_volume_relative_error_pct_at_60min": 0.00028786392637232636
+      },
+      "validation_score": 1.0859084521690305,
+      "seconds": 122.75729037499696
+    }
+  ]
+}

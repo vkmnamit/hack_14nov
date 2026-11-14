@@ -2,7 +2,11 @@ import unittest
 
 import torch
 
-from backend.shallow_water import shallow_water_step
+from backend.shallow_water import (
+    conserve_depth_volume,
+    is_dry_without_rain,
+    shallow_water_step,
+)
 
 
 class ShallowWaterStepTests(unittest.TestCase):
@@ -73,6 +77,40 @@ class ShallowWaterStepTests(unittest.TestCase):
             )
         )
         self.assertLess(float(result[:, 1:].abs().max()), 1e-6)
+
+    def test_depth_correction_preserves_reference_volume(self) -> None:
+        reference = torch.full((1, 1, 4, 4), 0.2)
+        predicted = reference.clone()
+        predicted[:, :, 0, 0] = -0.1
+        predicted[:, :, 1, 1] = 0.7
+
+        result = conserve_depth_volume(predicted, reference)
+
+        self.assertGreaterEqual(float(result.min()), 0.0)
+        self.assertAlmostEqual(
+            float(result.sum()),
+            float(reference.sum()),
+            places=5,
+        )
+        self.assertTrue(
+            torch.equal(
+                conserve_depth_volume(torch.zeros_like(reference), reference),
+                reference,
+            )
+        )
+
+    def test_detects_dry_state_without_effective_rainfall(self) -> None:
+        state = torch.zeros((1, 3, 4, 4), dtype=torch.float32)
+        rainfall = torch.zeros((1, 1, 4, 4), dtype=torch.float32)
+
+        self.assertTrue(is_dry_without_rain(state, rainfall))
+
+        rainfall[:, :, 0, 0] = 1e-5
+        self.assertFalse(is_dry_without_rain(state, rainfall))
+
+        rainfall.zero_()
+        state[:, 0, 0, 0] = 0.01
+        self.assertFalse(is_dry_without_rain(state, rainfall))
 
 
 if __name__ == "__main__":

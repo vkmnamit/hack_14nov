@@ -13,17 +13,30 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
-from evaluate_convlstm import (
-    BACKEND_DIR,
-    DATA_PATH,
-    MODEL_DIR,
-    NORMALIZATION_PATH,
-    ConvLSTMSurrogate,
-    calculate_metrics,
-    predict_next_state,
-    run_rollout,
-    verify_normalization,
-)
+try:
+    from .evaluate_convlstm import (
+        BACKEND_DIR,
+        DATA_PATH,
+        MODEL_DIR,
+        NORMALIZATION_PATH,
+        ConvLSTMSurrogate,
+        calculate_metrics,
+        predict_next_state,
+        run_rollout,
+        verify_normalization,
+    )
+except ImportError:
+    from evaluate_convlstm import (
+        BACKEND_DIR,
+        DATA_PATH,
+        MODEL_DIR,
+        NORMALIZATION_PATH,
+        ConvLSTMSurrogate,
+        calculate_metrics,
+        predict_next_state,
+        run_rollout,
+        verify_normalization,
+    )
 
 
 REPO_DIR = BACKEND_DIR.parent
@@ -290,7 +303,7 @@ def validate(
         60: [],
     }
     for scenario_index in scenario_indices:
-        prediction, _ = run_rollout(
+        prediction, _, _, _ = run_rollout(
             model,
             data,
             normalization,
@@ -329,15 +342,15 @@ def validation_score(
 ) -> float:
     depth_ratio = (
         metrics["depth_mae_at_60min"]
-        / baseline["depth_mae_at_60min"]
+        / max(baseline["depth_mae_at_60min"], 1e-6)
     )
     volume_ratio = (
         metrics["water_volume_relative_error_pct_at_60min"]
-        / baseline["water_volume_relative_error_pct_at_60min"]
+        / max(baseline["water_volume_relative_error_pct_at_60min"], 1.0)
     )
     csi_miss_ratio = (
         (1.0 - metrics["wet_area_csi_at_60min"])
-        / (1.0 - baseline["wet_area_csi_at_60min"])
+        / max(1.0 - baseline["wet_area_csi_at_60min"], 0.05)
     )
     return (depth_ratio + volume_ratio + csi_miss_ratio) / 3.0
 
@@ -390,7 +403,7 @@ def main() -> None:
         if train_indices.size == 0 or validation_indices.size == 0:
             raise ValueError("Dataset must contain train and validation scenarios")
 
-        baseline_validation = validate(
+        initial_checkpoint_validation = validate(
             model,
             data,
             normalization,
@@ -398,19 +411,44 @@ def main() -> None:
             carry_hidden_state=True,
             physics_informed=args.initialization_mode == "hybrid_residual",
         )
-        if args.initialization_mode == "absolute":
-            with torch.no_grad():
-                torch.nn.init.zeros_(model.output_layer.weight)
-                torch.nn.init.zeros_(model.output_layer.bias)
+        initial_residual_weight = model.output_layer.weight.detach().clone()
+        initial_residual_bias = model.output_layer.bias.detach().clone()
+        with torch.no_grad():
+            torch.nn.init.zeros_(model.output_layer.weight)
+            torch.nn.init.zeros_(model.output_layer.bias)
+        physics_baseline_validation = validate(
+            model,
+            data,
+            normalization,
+            validation_indices,
+            carry_hidden_state=True,
+            physics_informed=True,
+        )
+        best_validation_score = 1.0
+        best_epoch = 0
+        if args.initialization_mode == "hybrid_residual":
+            initial_score = validation_score(
+                initial_checkpoint_validation,
+                physics_baseline_validation,
+            )
+            if initial_score < best_validation_score:
+                with torch.no_grad():
+                    model.output_layer.weight.copy_(initial_residual_weight)
+                    model.output_layer.bias.copy_(initial_residual_bias)
+                best_validation_score = initial_score
+        save_checkpoint(model, args.output_weights)
+
         history: dict[str, Any] = {
             "device": str(device),
             "training_scenarios": int(train_indices.size),
             "validation_scenarios": int(validation_indices.size),
             "validation_selection_metric": (
                 "mean of depth-MAE ratio, water-volume-error ratio, and "
-                "CSI-miss ratio relative to the original checkpoint"
+                "CSI-miss ratio relative to the physics-only validation "
+                "baseline; volume baseline has a 1 percentage-point floor"
             ),
-            "baseline_validation": baseline_validation,
+            "initial_checkpoint_validation": initial_checkpoint_validation,
+            "physics_baseline_validation": physics_baseline_validation,
             "chunk_length": args.chunk_length,
             "mass_loss_weight": args.mass_loss_weight,
             "initialization_mode": args.initialization_mode,
@@ -426,9 +464,10 @@ def main() -> None:
             },
             "initial_weights": str(args.initial_weights),
             "best_weights": str(args.output_weights),
+            "best_epoch": best_epoch,
+            "best_validation_score": best_validation_score,
             "epochs": [],
         }
-        best_validation_score = float("inf")
         epochs_without_improvement = 0
 
         print(
@@ -458,7 +497,10 @@ def main() -> None:
                 validation_indices,
                 physics_informed=True,
             )
-            score = validation_score(validation_metrics, baseline_validation)
+            score = validation_score(
+                validation_metrics,
+                physics_baseline_validation,
+            )
             epoch_record = {
                 "epoch": epoch + 1,
                 "train_loss": train_loss,

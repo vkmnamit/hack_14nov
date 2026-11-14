@@ -5,6 +5,7 @@ import {
   postSimulate,
   getSimulationFrames,
   type DemoLocation,
+  type ModelType,
   type SimulationMetadata,
 } from '@/services/api';
 import { DEMO_MODE_DEFAULT } from '@/config/appConfig';
@@ -16,6 +17,7 @@ interface SimulationState {
   rainfallIntensity: number;
   durationMin: number;
   pattern: RainfallPattern;
+  modelType: ModelType;
   status: SimulationStatus;
   progress: number;
   dataset: DemoDataset | null;
@@ -40,6 +42,7 @@ type Action =
   | { type: 'SET_INTENSITY'; value: number }
   | { type: 'SET_DURATION'; value: number }
   | { type: 'SET_PATTERN'; value: RainfallPattern }
+  | { type: 'SET_MODEL'; value: ModelType }
   | { type: 'RUN_START' }
   | { type: 'RUN_PROGRESS'; value: number }
   | { type: 'RUN_COMPLETE'; dataset: DemoDataset; meta: SimulationMetadata }
@@ -64,6 +67,7 @@ const initialState: SimulationState = {
   rainfallIntensity: 100,
   durationMin: 60,
   pattern: 'constant',
+  modelType: 'adaptive',
   status: 'ready',
   progress: 0,
   // Terrain is available immediately so the 3D view shows the DEM tile
@@ -105,6 +109,8 @@ function reducer(state: SimulationState, action: Action): SimulationState {
       return { ...state, durationMin: action.value };
     case 'SET_PATTERN':
       return { ...state, pattern: action.value };
+    case 'SET_MODEL':
+      return { ...state, modelType: action.value };
     case 'RUN_START':
       return {
         ...state,
@@ -188,6 +194,7 @@ interface SimulationContextValue {
   setIntensity: (v: number) => void;
   setDuration: (v: number) => void;
   setPattern: (v: RainfallPattern) => void;
+  setModelType: (v: ModelType) => void;
   runSimulation: () => Promise<void>;
   pause: () => void;
   resume: () => void;
@@ -216,10 +223,12 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       setIntensity: (value) => dispatch({ type: 'SET_INTENSITY', value }),
       setDuration: (value) => dispatch({ type: 'SET_DURATION', value }),
       setPattern: (value) => dispatch({ type: 'SET_PATTERN', value }),
+      setModelType: (value) => dispatch({ type: 'SET_MODEL', value }),
       runSimulation: async () => {
         dispatch({ type: 'RUN_START' });
         const req = {
           locationId: state.location.id,
+          modelType: state.modelType,
           rainfallIntensityMmHr: state.rainfallIntensity,
           durationMin: state.durationMin,
           pattern: state.pattern,
@@ -235,14 +244,14 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
           }
           const meta = await postSimulate(req);
           dispatch({ type: 'RUN_PROGRESS', value: state.isDemoMode ? 80 : 60 });
-          const { simulationId, frames, terrain } = await getSimulationFrames(req, meta);
+          const { simulationId, frames, terrain, diagnostics } = await getSimulationFrames(req, meta);
           const datasetTerrain = terrain ?? (state.isDemoMode ? getDatasetForLocation(state.location).terrain : null);
           if (!datasetTerrain) {
             throw new Error('Backend response did not include terrain metadata for the flood frames.');
           }
           dispatch({
             type: 'RUN_COMPLETE',
-            meta: { ...meta, id: simulationId },
+            meta: { ...meta, id: simulationId, diagnostics },
             dataset: {
               terrain: datasetTerrain,
               frames,

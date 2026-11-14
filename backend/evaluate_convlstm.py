@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 import re
 import time
@@ -19,7 +20,22 @@ import numpy as np
 import torch
 from torch import nn
 
-from shallow_water import enforce_physical_state, shallow_water_step
+try:
+    from .shallow_water import (
+        conserve_depth_volume,
+        enforce_physical_state,
+        is_dry_without_rain,
+        needs_physics_fallback,
+        shallow_water_step,
+    )
+except ImportError:
+    from shallow_water import (
+        conserve_depth_volume,
+        enforce_physical_state,
+        is_dry_without_rain,
+        needs_physics_fallback,
+        shallow_water_step,
+    )
 
 
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -121,6 +137,28 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Interpret model outputs as corrections to a shallow-water step.",
     )
+    parser.add_argument(
+        "--adaptive-physics",
+        action="store_true",
+        help=(
+            "Use the absolute-state ConvLSTM normally and fall back to one "
+            "shallow-water step when its water-volume budget is violated."
+        ),
+    )
+    parser.add_argument(
+        "--fallback-volume-error-pct",
+        type=float,
+        default=1.0,
+        help="Relative water-volume budget error that triggers the SWE fallback.",
+    )
+    parser.add_argument(
+        "--allow-normalization-mismatch",
+        action="store_true",
+        help=(
+            "Allow the checkpoint's training normalization on another city "
+            "for an explicit zero-shot transfer evaluation."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -190,6 +228,14 @@ def predict_next_state(
     predicted_physical = (
         physical_baseline + correction_normalized * safe_state_std
     )
+    predicted_depth = conserve_depth_volume(
+        predicted_physical[:, 0:1],
+        physical_baseline[:, 0:1],
+    )
+    predicted_physical = torch.cat(
+        (predicted_depth, predicted_physical[:, 1:3]),
+        dim=1,
+    )
     predicted_physical = enforce_physical_state(predicted_physical)
     prediction_normalized = (predicted_physical - state_mean) / safe_state_std
     return prediction_normalized, next_hidden_state
@@ -202,7 +248,24 @@ def run_rollout(
     scenario_index: int,
     carry_hidden_state: bool = False,
     physics_informed: bool = False,
-) -> tuple[np.ndarray, float]:
+    fallback_volume_error_pct: float | None = None,
+) -> tuple[np.ndarray, float, int, int]:
+    if physics_informed and fallback_volume_error_pct is not None:
+        raise ValueError(
+            "Adaptive SWE fallback requires an absolute-state checkpoint; "
+            "it cannot be combined with --physics-informed residual weights"
+        )
+    if (
+        fallback_volume_error_pct is not None
+        and (
+            not math.isfinite(fallback_volume_error_pct)
+            or fallback_volume_error_pct <= 0
+        )
+    ):
+        raise ValueError(
+            "fallback volume error threshold must be finite and positive"
+        )
+
     truth = data["state_sequence"][scenario_index]
     rainfall = data["raw_rainfall_mm_hr"][scenario_index]
     effective_rainfall = data["rainfall_effective_m_s"][scenario_index]
@@ -245,8 +308,31 @@ def run_rollout(
         device=device,
     )
     start = time.perf_counter()
+    physics_fallback_steps = 0
+    dry_no_source_shortcut_steps = 0
     with torch.inference_mode():
         for frame in range(60):
+            if fallback_volume_error_pct is not None:
+                dry_state = torch.as_tensor(
+                    current[None],
+                    dtype=torch.float32,
+                    device=device,
+                )
+                effective_rainfall_tensor = torch.as_tensor(
+                    effective_rainfall[frame][None, None],
+                    dtype=torch.float32,
+                    device=device,
+                )
+                if is_dry_without_rain(
+                    dry_state,
+                    effective_rainfall_tensor,
+                ):
+                    current = np.zeros_like(current)
+                    predicted.append(current.copy())
+                    hidden_state = None
+                    dry_no_source_shortcut_steps += 1
+                    continue
+
             state_norm = (
                 current - normalization["state_mean"][:, None, None]
             ) / (normalization["state_std"][:, None, None] + 1e-8)
@@ -290,6 +376,41 @@ def run_rollout(
                     model_input_tensor,
                     input_hidden_state,
                 )
+                if fallback_volume_error_pct is not None:
+                    current_normalized_tensor = torch.as_tensor(
+                        state_norm[None],
+                        dtype=torch.float32,
+                        device=device,
+                    )
+                    current_physical = (
+                        current_normalized_tensor * state_std + state_mean
+                    )
+                    safe_state_std = state_std.clamp_min(1e-8)
+                    predicted_physical = enforce_physical_state(
+                        output * safe_state_std + state_mean
+                    )
+                    effective_rainfall_tensor = torch.as_tensor(
+                        effective_rainfall[frame][None, None],
+                        dtype=torch.float32,
+                        device=device,
+                    )
+                    if needs_physics_fallback(
+                        predicted_physical,
+                        current_physical,
+                        effective_rainfall_tensor,
+                        fallback_volume_error_pct,
+                    ):
+                        predicted_physical = shallow_water_step(
+                            current_physical,
+                            effective_rainfall_tensor,
+                            elevation_tensor,
+                            manning_tensor,
+                        )
+                        physics_fallback_steps += 1
+                        next_hidden_state = None
+                    output = (
+                        predicted_physical - state_mean
+                    ) / safe_state_std
             hidden_state = next_hidden_state if carry_hidden_state else None
             output_norm = output[0].cpu().numpy()
             current = (
@@ -299,7 +420,12 @@ def run_rollout(
             current[0] = np.maximum(current[0], 0.0)
             predicted.append(current.copy())
 
-    return np.stack(predicted), time.perf_counter() - start
+    return (
+        np.stack(predicted),
+        time.perf_counter() - start,
+        physics_fallback_steps,
+        dry_no_source_shortcut_steps,
+    )
 
 
 def mean_or_none(values: np.ndarray) -> float | None:
@@ -551,6 +677,18 @@ def save_spatial_report(
 
 def main() -> None:
     args = parse_args()
+    if args.adaptive_physics and args.physics_informed:
+        raise ValueError(
+            "--adaptive-physics requires an absolute-state checkpoint and "
+            "cannot be combined with --physics-informed"
+        )
+    if args.adaptive_physics and (
+        not math.isfinite(args.fallback_volume_error_pct)
+        or args.fallback_volume_error_pct <= 0
+    ):
+        raise ValueError(
+            "--fallback-volume-error-pct must be finite and positive"
+        )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     torch.set_num_threads(1)
     model = make_model(args.weights)
@@ -559,7 +697,13 @@ def main() -> None:
         args.normalization,
         allow_pickle=False,
     ) as normalization:
-        verify_normalization(data, normalization)
+        if args.allow_normalization_mismatch:
+            print(
+                "Using checkpoint normalization without checking it against "
+                "the dataset (explicit zero-shot transfer mode)."
+            )
+        else:
+            verify_normalization(data, normalization)
         indices = np.flatnonzero(data["split"] == args.split)
         if indices.size == 0:
             raise ValueError("Dataset contains no validation scenarios")
@@ -573,20 +717,38 @@ def main() -> None:
         predictions_by_scenario: list[np.ndarray] = []
         references_by_scenario: list[np.ndarray] = []
         rollout_times: list[float] = []
+        physics_fallback_steps = 0
+        dry_no_source_shortcut_steps = 0
 
         for index in indices:
             index = int(index)
-            prediction, rollout_seconds = run_rollout(
+            (
+                prediction,
+                rollout_seconds,
+                scenario_fallback_steps,
+                scenario_dry_shortcut_steps,
+            ) = run_rollout(
                 model,
                 data,
                 normalization,
                 index,
                 carry_hidden_state=args.carry_hidden_state,
                 physics_informed=args.physics_informed,
+                fallback_volume_error_pct=(
+                    args.fallback_volume_error_pct
+                    if args.adaptive_physics
+                    else None
+                ),
             )
             rollout_times.append(rollout_seconds)
+            physics_fallback_steps += scenario_fallback_steps
+            dry_no_source_shortcut_steps += scenario_dry_shortcut_steps
             truth = data["state_sequence"][index]
             scenario = parameters_by_index[index]
+            scenario["physics_fallback_steps"] = scenario_fallback_steps
+            scenario["dry_no_source_shortcut_steps"] = (
+                scenario_dry_shortcut_steps
+            )
             scenario_info.append(scenario)
             predictions_by_scenario.append(
                 np.stack([prediction[minute] for minute in TARGET_MINUTES])
@@ -604,6 +766,10 @@ def main() -> None:
                         "scenario_name": scenario["scenario_name"],
                         "split": str(data["split"][index]),
                         "minute": minute,
+                        "physics_fallback_steps": scenario_fallback_steps,
+                        "dry_no_source_shortcut_steps": (
+                            scenario_dry_shortcut_steps
+                        ),
                         **metrics,
                     }
                 )
@@ -674,6 +840,8 @@ def main() -> None:
             "device": "cpu",
             "hidden_state_carried": args.carry_hidden_state,
             "physics_informed": args.physics_informed,
+            "adaptive_physics": args.adaptive_physics,
+            "normalization_mismatch_allowed": args.allow_normalization_mismatch,
             "physics_solver": (
                 {
                     "method": "hydrostatic-reconstruction Rusanov flux",
@@ -684,7 +852,27 @@ def main() -> None:
                     "friction": "Manning",
                     "boundaries": "reflective",
                 }
-                if args.physics_informed
+                if args.physics_informed or args.adaptive_physics
+                else None
+            ),
+            "adaptive_physics_fallback": (
+                {
+                    "trigger": (
+                        "non-finite prediction or predicted total depth "
+                        "volume differs from current volume plus effective "
+                        "rainfall input by more than the configured threshold"
+                    ),
+                    "volume_error_threshold_pct": args.fallback_volume_error_pct,
+                    "triggered_steps": physics_fallback_steps,
+                    "total_steps": int(indices.size * 60),
+                    "trigger_rate": float(
+                        physics_fallback_steps / (indices.size * 60)
+                    ),
+                    "dry_no_source_shortcut_steps": (
+                        dry_no_source_shortcut_steps
+                    ),
+                }
+                if args.adaptive_physics
                 else None
             ),
             "torch_version": torch.__version__,
@@ -717,6 +905,14 @@ def main() -> None:
                 "water_volume_relative_error_pct": (
                     "Absolute difference in total depth-integrated volume "
                     "divided by ANUGA volume"
+                ),
+                "physics_fallback_steps": (
+                    "Number of rollout steps that used the shallow-water "
+                    "equation fallback"
+                ),
+                "dry_no_source_shortcut_steps": (
+                    "Steps skipped exactly because depth and effective rainfall "
+                    "were both zero"
                 ),
                 "aggregation": (
                     "Metrics are calculated per scenario, then averaged "

@@ -44,6 +44,89 @@ def enforce_physical_state(
     return torch.cat((depth, momentum), dim=1)
 
 
+def conserve_depth_volume(
+    predicted_depth: torch.Tensor,
+    reference_depth: torch.Tensor,
+) -> torch.Tensor:
+    """Project nonnegative depth predictions to the reference total volume."""
+    if (
+        predicted_depth.ndim != 4
+        or predicted_depth.shape[1] != 1
+        or predicted_depth.shape != reference_depth.shape
+    ):
+        raise ValueError(
+            "depth fields must have matching (batch, 1, height, width) shapes"
+        )
+    reference = reference_depth.clamp_min(0.0)
+    predicted = predicted_depth.clamp_min(0.0)
+    reference_volume = reference.sum(dim=(-2, -1), keepdim=True)
+    predicted_volume = predicted.sum(dim=(-2, -1), keepdim=True)
+    minimum_volume = (reference_volume * 1e-6).clamp_min(1e-8)
+    has_prediction = predicted_volume > minimum_volume
+    scale = reference_volume / predicted_volume.clamp_min(1e-8)
+    projected = predicted * scale
+    return torch.where(has_prediction, projected, reference)
+
+
+def needs_physics_fallback(
+    predicted_state: torch.Tensor,
+    current_state: torch.Tensor,
+    rainfall_effective_m_s: torch.Tensor,
+    threshold_pct: float,
+    dt_seconds: float = 60.0,
+) -> bool:
+    if not math.isfinite(threshold_pct) or threshold_pct <= 0:
+        raise ValueError("fallback volume threshold must be finite and positive")
+    if not math.isfinite(dt_seconds) or dt_seconds <= 0:
+        raise ValueError("dt_seconds must be finite and positive")
+    if (
+        predicted_state.ndim != 4
+        or predicted_state.shape[1] != 3
+        or predicted_state.shape != current_state.shape
+    ):
+        raise ValueError("predicted and current states must have matching shapes")
+    if not torch.isfinite(predicted_state).all():
+        return True
+
+    rainfall = _as_field(
+        rainfall_effective_m_s,
+        current_state,
+        "rainfall",
+    )
+    if (rainfall < 0).any():
+        raise ValueError("effective rainfall cannot be negative")
+
+    predicted_volume_depth = predicted_state[:, 0:1].clamp_min(0.0).sum()
+    current_volume_depth = current_state[:, 0:1].clamp_min(0.0).sum()
+    expected_volume_depth = current_volume_depth + rainfall.sum() * dt_seconds
+    if expected_volume_depth <= 1e-8:
+        return bool(predicted_volume_depth > 1e-8)
+    relative_error = (
+        torch.abs(predicted_volume_depth - expected_volume_depth)
+        / expected_volume_depth
+        * 100.0
+    )
+    return bool(relative_error > threshold_pct)
+
+
+def is_dry_without_rain(
+    state: torch.Tensor,
+    rainfall_effective_m_s: torch.Tensor,
+) -> bool:
+    if state.ndim != 4 or state.shape[1] != 3:
+        raise ValueError("state must have shape (batch, 3, height, width)")
+    rainfall = _as_field(
+        rainfall_effective_m_s,
+        state,
+        "rainfall",
+    )
+    if (rainfall < 0).any():
+        raise ValueError("effective rainfall cannot be negative")
+    no_water = state[:, 0:1].clamp_min(0.0).sum() <= 1e-8
+    no_rain = not bool((rainfall > 0).any())
+    return bool(no_water) and no_rain
+
+
 def _axis_fluxes(
     state: torch.Tensor,
     elevation: torch.Tensor,

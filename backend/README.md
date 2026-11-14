@@ -1,9 +1,9 @@
-# Majuli ANUGA training dataset
+# VARUNA Flood Simulation
 
 ## Run the frontend integration API
 
-The checked-in Majuli demo output is served by a small FastAPI adapter. Install
-the backend dependencies, then start the API from the repository root:
+The FastAPI API runs live ANUGA or city-trained ConvLSTM rollouts. Install the
+backend dependencies, then start the API from the repository root:
 
 ```sh
 python3 -m venv backend/.venv
@@ -13,15 +13,12 @@ backend/.venv/bin/uvicorn backend.app:app --reload --port 8000
 
 The frontend uses connected mode by default and expects the API at
 `http://localhost:8000`. Set `VITE_API_BASE_URL` to use another origin, or set
-`VITE_DEMO_MODE=true` when the backend is intentionally unavailable. If the
-generated output is missing, create it first with
-`backend/.venv/bin/python backend/run_majuli_demo.py`.
+`VITE_DEMO_MODE=true` to intentionally use synthetic demo output.
 
-When ANUGA is installed, `/api/simulation/{id}/frames` runs a parameterized
-ANUGA shallow-water simulation using the requested rainfall intensity, duration,
-and pattern. Set `VARUNA_USE_LIVE_ANUGA=false` to force the checked-in
-precomputed output fallback. The older Sotai/LISFLOOD-FP setup remains
-available as a separate comparison baseline.
+`/api/simulation/{id}/frames` runs the requested live model. It returns an
+explicit error when the selected solver or required assets are unavailable;
+there is no precomputed-frame fallback. The older Sotai/LISFLOOD-FP setup
+remains available as a separate comparison baseline.
 
 ## Installed models
 
@@ -154,6 +151,94 @@ The saved trajectories are ANUGA references, not observed flood measurements.
 The notebook's scenario index 36 is a training scenario in this dataset; use
 the validation report for held-out performance.
 
+## Use SWE only as an adaptive fallback
+
+For an absolute-state ConvLSTM checkpoint, `--adaptive-physics` first accepts
+the neural prediction when its total depth volume is within the configured
+mass-budget tolerance. If the prediction is non-finite or its volume differs
+from the previous volume plus effective rainfall by more than the tolerance,
+the evaluator uses one CFL-subcycled shallow-water-equation (SWE) step instead.
+An exactly dry state with zero effective rain remains dry without running
+either the network or SWE solver. The default tolerance is 1%; override it
+with `--fallback-volume-error-pct`. This is a mass-conservation safeguard,
+not a general uncertainty estimate, so it cannot detect every spatial error.
+
+The adaptive mode requires absolute-state weights. Do not combine it with
+`--physics-informed` or a hybrid-residual checkpoint: those corrections need
+an SWE baseline on every step. Evaluate the threshold on validation scenarios
+first, then use the selected setting once on the test split.
+
+Majuli's v2 scenarios use the original checkpoint with its matching
+normalization:
+
+```sh
+.venv/bin/python evaluate_convlstm.py \
+  --adaptive-physics \
+  --fallback-volume-error-pct 100 \
+  --weights ../model/convlstm_surrogate.pt \
+  --normalization ../model/normalization_config.npz \
+  --split validation \
+  --output-dir data/processed/majuli_training_v2/adaptive_swe_100pct_validation
+```
+
+Guwahati uses its city-specific absolute-state checkpoint and normalization:
+
+```sh
+.venv/bin/python evaluate_convlstm.py \
+  --data data/processed/guwahati/guwahati_anuga_convlstm.npz \
+  --weights ../model/guwahati_convlstm.pt \
+  --normalization ../model/guwahati_normalization.npz \
+  --carry-hidden-state \
+  --adaptive-physics \
+  --fallback-volume-error-pct 75 \
+  --split validation \
+  --output-dir data/processed/guwahati/adaptive_swe_75pct_validation
+```
+
+These city-specific thresholds were chosen on validation to meet a 2x
+90th-percentile latency cap relative to neural-only rollouts. On the
+synthetic test scenarios, SWE ran on 7.1% of Majuli steps and 1.6% of
+Guwahati steps; exact dry/no-rain steps were skipped on another 33.3% of
+Guwahati steps. Repeated sequential test timing measured 1.91x Majuli and
+1.07x Guwahati 90th-percentile runtime. Reports include fallback and dry
+shortcut counts, metrics, and timing summaries. The legacy demo archives do
+not contain the same complete rollout and normalization schema, so only the
+complete Majuli v2 and Guwahati archives are included here.
+The combined accuracy/latency comparison is saved as
+`backend/data/processed/adaptive_swe_accuracy_latency_summary.json`.
+
+## Run real model predictions in the frontend
+
+The connected API exposes three forecast choices:
+
+- `physics`: a fresh one-hour ANUGA shallow-water simulation.
+- `convlstm`: a recursive rollout from the trained city-specific ConvLSTM.
+- `adaptive`: the ConvLSTM with the validation-selected SWE fallback threshold.
+
+Real model predictions are currently available only for Garamur, Majuli and
+Guwahati. The city-specific checkpoints, normalization, and compact 50 x 50
+terrain grids are included in `model/`; the large generated training archives
+and evaluation outputs are not required to run the frontend.
+
+The interactive ConvLSTM runs use a dry initial state, uniform rainfall,
+5 mm/hour infiltration, Manning's n of 0.05, and the matching city checkpoint
+and normalization. Each run predicts a 60-minute horizon; the selected storm
+duration controls when the uniform rain stops. The API does not substitute
+scaled or hardcoded frames when a checkpoint, terrain asset, or ANUGA is
+unavailable; it returns an explicit error instead.
+
+Run the backend and Vite frontend from the repository root:
+
+```sh
+./run_dev.sh
+```
+
+Choose the forecast engine in the frontend's **Prediction model** control.
+The performance panel reports the selected solver and measured rollout time.
+Per-run MAE and CSI are not shown because an interactive request has no
+ground-truth flood map; use the held-out evaluation reports for accuracy
+metrics.
+
 ## Fine-tune the ConvLSTM for recursive rollouts
 
 The original notebook trains on one-frame inputs and resets the recurrent
@@ -172,15 +257,18 @@ the best validation score across the 18 ANUGA validation scenarios. Each
 forecast step first applies a CFL-subcycled finite-volume shallow-water update
 (hydrostatic-reconstruction Rusanov fluxes, effective rainfall, bed elevation,
 reflective boundaries, and Manning friction); the ConvLSTM learns a residual
-correction to that provisional state. The corrected depth and momenta are fed
-into the next step. This solver is a lightweight baseline, not a replacement
-for ANUGA's full solver.
+correction to that provisional state. Its depth correction is projected to
+preserve the provisional state's total water volume while changing the spatial
+distribution. The corrected depth and momenta are fed into the next step.
+This solver is a lightweight baseline, not a replacement for ANUGA's full
+solver.
 
-The score equally combines depth-MAE ratio, water-volume-error ratio, and
-wet-area CSI miss ratio against the original checkpoint. A validation-only
-sweep over mass-loss weights selected `1e-8`; pass `--mass-loss-weight` to
-override it. The original weights are kept; the hybrid model and epoch history
-are saved as `model/convlstm_hybrid.pt` and
+The selection score equally combines depth-MAE ratio, water-volume-error ratio,
+and wet-area CSI miss ratio relative to the physics-only validation baseline
+(with a 1 percentage-point floor for its near-zero volume error). A
+validation-only sweep over mass-loss weights selected `1e-8`; pass
+`--mass-loss-weight` to override it. The original weights are kept; the hybrid
+model and epoch history are saved as `model/convlstm_hybrid.pt` and
 `model/convlstm_hybrid_training.json`.
 
 Evaluate that checkpoint with recurrent state carried between rollout steps:
@@ -231,14 +319,14 @@ Fine-tune a separate checkpoint and evaluate both held-out splits:
 .venv/bin/python train_convlstm.py \
   --data data/processed/guwahati/guwahati_anuga_convlstm.npz \
   --normalization ../model/guwahati_normalization.npz \
-  --output-weights ../model/guwahati_convlstm.pt \
-  --history ../model/guwahati_training.json \
+  --output-weights ../model/guwahati_hybrid.pt \
+  --history ../model/guwahati_hybrid_training.json \
   --mass-loss-weight 5e-8
 
 .venv/bin/python evaluate_convlstm.py \
   --data data/processed/guwahati/guwahati_anuga_convlstm.npz \
   --normalization ../model/guwahati_normalization.npz \
-  --weights ../model/guwahati_convlstm.pt \
+  --weights ../model/guwahati_hybrid.pt \
   --carry-hidden-state \
   --physics-informed \
   --split validation \
@@ -247,7 +335,7 @@ Fine-tune a separate checkpoint and evaluate both held-out splits:
 .venv/bin/python evaluate_convlstm.py \
   --data data/processed/guwahati/guwahati_anuga_convlstm.npz \
   --normalization ../model/guwahati_normalization.npz \
-  --weights ../model/guwahati_convlstm.pt \
+  --weights ../model/guwahati_hybrid.pt \
   --carry-hidden-state \
   --physics-informed \
   --split test \

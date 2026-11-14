@@ -16,7 +16,7 @@ import type { RainfallPattern, SimulationStatus } from '@/lib/demoData';
 import { cn } from '@/lib/utils';
 import { RAIN_RADAR_URL } from '@/config/appConfig';
 
-const DURATION_OPTIONS = [15, 30, 60, 90];
+const DURATION_OPTIONS = [15, 30, 60];
 
 const PATTERN_OPTIONS: { value: RainfallPattern; label: string }[] = [
   { value: 'constant', label: 'Constant' },
@@ -50,6 +50,7 @@ export default function SidebarControls() {
     setIntensity,
     setDuration,
     setPattern,
+    setModelType,
     runSimulation,
     pause,
     resume,
@@ -87,6 +88,27 @@ export default function SidebarControls() {
           </SelectContent>
         </Select>
         <p className="mt-1.5 text-[11px] leading-snug text-slate-500">{state.location.region}</p>
+      </section>
+
+      {/* Rainfall configuration */}
+      <section>
+        <SectionTitle icon={<Gauge size={14} />}>Prediction model</SectionTitle>
+        <Select
+          value={state.modelType}
+          onValueChange={(value) => setModelType(value as 'physics' | 'convlstm' | 'adaptive')}
+        >
+          <SelectTrigger className="w-full border-[#30453f] bg-[#111c1d] text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="border-[#30453f] bg-[#111c1d]">
+            <SelectItem value="physics">ANUGA physics-only</SelectItem>
+            <SelectItem value="convlstm">ConvLSTM-only</SelectItem>
+            <SelectItem value="adaptive">ConvLSTM + SWE fallback</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="mt-1.5 text-[10px] leading-snug text-slate-500">
+          Real city-trained predictions are available for Majuli and Guwahati.
+        </p>
       </section>
 
       {/* Rainfall configuration */}
@@ -362,7 +384,9 @@ export default function SidebarControls() {
         <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
           {state.isDemoMode
             ? 'Running synthetic terrain and hydrology. Results are illustrative only and are not real flood predictions.'
-            : 'Simulation requests use the configured backend. Results remain unavailable until the backend returns valid terrain and frame data.'}
+            : state.simulationMeta?.diagnostics
+              ? `${state.simulationMeta.diagnostics.solver} · ${state.simulationMeta.diagnostics.runtimeSeconds.toFixed(3)} s`
+              : 'Connected mode runs the selected model on the backend; results are unavailable until a forecast completes.'}
         </p>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 
 interface TopBarProps {
   simulationId: string | null;
+  locationName: string;
   collapsed: boolean;
   isDemoMode: boolean;
   activeView: 'forecast' | 'performance';
@@ -28,6 +29,7 @@ const NAV_ITEMS: { label: string; sublabel: string; view: 'forecast' | 'performa
 
 export default function TopBar({
   simulationId,
+  locationName,
   collapsed,
   isDemoMode,
   activeView,
@@ -132,7 +134,7 @@ export default function TopBar({
           {isDemoMode ? 'Demo data, synthetic' : connectionLabel}
         </span>
         <div className="hidden items-center gap-2 border-l border-[var(--varuna-border)] pl-3 text-[#9a9a9a] xl:flex">
-          <span className="font-tabular text-[10px]">Bengaluru · 14 Nov, {now} IST</span>
+          <span className="font-tabular text-[10px]">{locationName} · {now} IST</span>
         </div>
         <div className="flex items-center gap-1.5 border-l border-[var(--varuna-border)] pl-3 text-[#9a9a9a]">
           <CircleUserRound size={17} />

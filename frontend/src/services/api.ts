@@ -17,9 +17,19 @@ import {
 
 export interface SimulationRequest {
   locationId: string;
+  modelType: ModelType;
   rainfallIntensityMmHr: number;
   durationMin: number;
   pattern: RainfallPattern;
+}
+
+export type ModelType = 'physics' | 'convlstm' | 'adaptive';
+
+export interface SimulationDiagnostics {
+  solver: string;
+  runtimeSeconds: number;
+  physicsFallbackSteps: number;
+  dryShortcutSteps: number;
 }
 
 export interface SimulationMetadata {
@@ -30,13 +40,16 @@ export interface SimulationMetadata {
   rainfallIntensityMmHr: number;
   durationMin: number;
   pattern: RainfallPattern;
+  modelType: ModelType;
   mode: 'demo' | 'connected';
+  diagnostics?: SimulationDiagnostics;
 }
 
 export interface SimulationFrames {
   simulationId: string;
   frames: FloodFrame[];
   terrain?: TerrainGrid;
+  diagnostics?: SimulationDiagnostics;
 }
 
 export interface HealthResponse {
@@ -67,6 +80,15 @@ export const DEMO_LOCATIONS: DemoLocation[] = [
     cameraHeight: 2600,
     seed: 1337,
   },
+  {
+    id: 'guwahati',
+    name: 'Guwahati',
+    region: 'Guwahati, Assam, India',
+    longitude: 91.7362,
+    latitude: 26.1445,
+    cameraHeight: 2600,
+    seed: 2618,
+  },
 ];
 
 class ApiError extends Error {
@@ -84,7 +106,17 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(`Unable to reach the backend at ${API_BASE_URL}.`);
   }
   if (!response.ok) {
-    throw new ApiError(`Backend request failed (${response.status} ${response.statusText}).`, response.status);
+    let detail = '';
+    try {
+      const payload = (await response.json()) as { detail?: unknown };
+      if (typeof payload.detail === 'string') detail = payload.detail;
+    } catch {
+      // Keep the HTTP status when the server does not return a JSON error body.
+    }
+    throw new ApiError(
+      detail || `Backend request failed (${response.status} ${response.statusText}).`,
+      response.status
+    );
   }
   try {
     return (await response.json()) as T;
@@ -128,6 +160,18 @@ function isTerrainGrid(value: unknown): value is TerrainGrid {
   );
 }
 
+function isSimulationDiagnostics(value: unknown): value is SimulationDiagnostics {
+  if (!value || typeof value !== 'object') return false;
+  const diagnostics = value as Partial<SimulationDiagnostics>;
+  return (
+    typeof diagnostics.solver === 'string' &&
+    typeof diagnostics.runtimeSeconds === 'number' &&
+    Number.isFinite(diagnostics.runtimeSeconds) &&
+    Number.isInteger(diagnostics.physicsFallbackSteps) &&
+    Number.isInteger(diagnostics.dryShortcutSteps)
+  );
+}
+
 function validateHealth(value: HealthResponse): HealthResponse {
   if (
     !value ||
@@ -150,7 +194,9 @@ function validateSimulationMetadata(value: SimulationMetadata): SimulationMetada
     !Number.isFinite(value.rainfallIntensityMmHr) ||
     !Number.isFinite(value.durationMin) ||
     !['constant', 'increasing', 'peak'].includes(value.pattern) ||
-    !['demo', 'connected'].includes(value.mode)
+    !['physics', 'convlstm', 'adaptive'].includes(value.modelType) ||
+    !['demo', 'connected'].includes(value.mode) ||
+    (value.diagnostics !== undefined && !isSimulationDiagnostics(value.diagnostics))
   ) {
     throw new ApiError('Backend returned invalid simulation metadata.');
   }
@@ -163,7 +209,8 @@ function validateFrames(value: SimulationFrames): SimulationFrames {
     typeof value.simulationId !== 'string' ||
     !Array.isArray(value.frames) ||
     !value.frames.every(isFloodFrame) ||
-    (value.terrain !== undefined && !isTerrainGrid(value.terrain))
+    (value.terrain !== undefined && !isTerrainGrid(value.terrain)) ||
+    (value.diagnostics !== undefined && !isSimulationDiagnostics(value.diagnostics))
   ) {
     throw new ApiError('Backend returned an invalid simulation frame payload.');
   }
@@ -223,7 +270,17 @@ export async function getSimulationFrames(
     req.pattern
   );
   await new Promise((r) => setTimeout(r, 400));
-  return { simulationId: meta.id, frames, terrain };
+  return {
+    simulationId: meta.id,
+    frames,
+    terrain,
+    diagnostics: {
+      solver: 'Synthetic demo generator (not a flood model)',
+      runtimeSeconds: 0,
+      physicsFallbackSteps: 0,
+      dryShortcutSteps: 0,
+    },
+  };
 }
 
 export function getDatasetForLocation(location: DemoLocation): DemoDataset {

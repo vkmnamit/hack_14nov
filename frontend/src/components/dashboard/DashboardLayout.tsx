@@ -55,7 +55,6 @@ function Dashboard() {
   const cameraPresets: { value: CameraPreset; label: string }[] = [
     { value: 'global', label: 'GLOBAL' },
     { value: 'india', label: 'INDIA' },
-    { value: 'bengaluru', label: 'BENGALURU' },
     { value: 'study', label: 'STUDY AREA' },
   ];
 
@@ -65,6 +64,7 @@ function Dashboard() {
         <>
           <TopBar
             simulationId={state.simulationMeta?.id ?? null}
+            locationName={state.location.name}
             collapsed={collapsed}
             isDemoMode={state.isDemoMode}
             activeView={activeView}
@@ -193,7 +193,7 @@ function Dashboard() {
               <div>
                 <p className="text-[9px] text-white">Urban sensor mesh</p>
                 <p className="text-[10px] text-[#9a9a9a]">
-                  {state.isDemoMode ? 'Synthetic terrain • Bengaluru, Karnataka' : 'Backend terrain • source reported by API'}
+                  {state.isDemoMode ? 'Synthetic demo terrain' : 'Backend terrain • source reported by API'}
                 </p>
               </div>
             </div>
