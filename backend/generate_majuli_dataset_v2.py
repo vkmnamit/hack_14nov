@@ -475,7 +475,113 @@ def main() -> None:
         normalization_elevation_mean_m=np.float32(dem.mean()),
         normalization_elevation_std_m=np.float32(max(dem.std(), 1e-8)),
     )
-    print("Dataset arrays saved")
+
+    max_mass_error = float(mass_error_array.max())
+    if max_mass_error > 0.01:
+        raise RuntimeError(
+            f"Dataset mass-balance error {max_mass_error:.2%} exceeds 1%"
+        )
+    counts_by_split = {
+        split: int(np.count_nonzero(splits == split))
+        for split in ("train", "validation", "test")
+    }
+    manifest = {
+        "dataset_version": 2,
+        "location": "Garamur, Majuli, Assam, India",
+        "center": {"latitude": 26.980306, "longitude": 94.1574452},
+        "elevation_source": (
+            "NASA/USGS SRTM 1 arc-second HGT via AWS Terrain Tiles "
+            "(N26E094)"
+        ),
+        "model": "ANUGA 4.2.0 shallow-water finite-volume solver",
+        "crs": CRS,
+        "grid": {
+            "rows": GRID_CELLS,
+            "columns": GRID_CELLS,
+            "cell_size_m": CELL_SIZE_M,
+            "domain_width_m": GRID_CELLS * CELL_SIZE_M,
+        },
+        "simulation": {
+            "duration_s": STORM_DURATION_S,
+            "output_interval_s": OUTPUT_STEP_S,
+            "rainfall_profile_interval_s": PROFILE_INTERVAL_S,
+            "state_channels": [
+                "depth h (m)",
+                "x momentum hu (m^2/s)",
+                "y momentum hv (m^2/s)",
+            ],
+            "rainfall_input": "raw spatial rainfall field in mm/hour",
+            "infiltration_input": (
+                "scenario-constant loss in mm/hour, applied as "
+                "max(rainfall - loss, 0); not a Green-Ampt model"
+            ),
+            "manning_n_levels": PARAMETER_LEVELS["manning_n"],
+            "infiltration_loss_levels_mm_hr": PARAMETER_LEVELS[
+                "infiltration_loss_mm_hr"
+            ],
+            "initial_condition_types": PARAMETER_LEVELS["initial_condition"],
+            "boundary": (
+                "reflective on all sides; no river inflow or outflow is "
+                "represented"
+            ),
+            "velocity_validity_threshold_m": FLOOD_DEPTH_THRESHOLD_M,
+        },
+        "array_shapes": {
+            "state_sequence": list(states_array.shape),
+            "initial_state": list(initial_states.shape),
+            "raw_rainfall_mm_hr": list(raw_rain_array.shape),
+            "rainfall_effective_m_s": list(effective_rain_array.shape),
+            "infiltration_loss_mm_hr": list(infiltration_maps.shape),
+            "manning_n": list(roughness_maps.shape),
+            "elevation_m": list(dem.shape),
+            "wet_mask_1cm": list(states_array[:, :, 0].shape),
+            "mass_balance_relative_error": list(mass_error_array.shape),
+        },
+        "sequence_learning": {
+            "initial_state": (
+                "ANUGA rasterized state at t=0; equal to state_sequence[:, 0]."
+            ),
+            "input": (
+                "Recent state sequence [h, hu, hv], raw rainfall, infiltration "
+                "loss, DEM, and Manning n."
+            ),
+            "target": "Next ANUGA state [h, hu, hv].",
+            "split_policy": (
+                "Complete rainfall-pattern groups are assigned to a single "
+                "split; time frames from one scenario are never separated."
+            ),
+            "scenario_counts": counts_by_split,
+            "normalization_statistics": {
+                "state_mean": state_mean.tolist(),
+                "state_std": np.maximum(state_std, 1e-8).tolist(),
+                "raw_rainfall_mean_mm_hr": rain_mean,
+                "raw_rainfall_std_mm_hr": max(rain_std, 1e-8),
+                "effective_rainfall_mean_m_s": effective_rain_mean,
+                "effective_rainfall_std_m_s": max(effective_rain_std, 1e-8),
+                "infiltration_mean_mm_hr": float(train_infiltration.mean()),
+                "infiltration_std_mm_hr": float(
+                    max(train_infiltration.std(), 1e-8)
+                ),
+                "manning_n_mean": float(train_roughness.mean()),
+                "manning_n_std": float(max(train_roughness.std(), 1e-8)),
+                "elevation_mean_m": float(dem.mean()),
+                "elevation_std_m": float(max(dem.std(), 1e-8)),
+                "computed_from": "training scenarios only",
+            },
+        },
+        "accuracy_note": (
+            "Mass balance checks numerical conservation only. Rainfall, "
+            "initial states, infiltration, and parameter combinations are "
+            "synthetic; no observed flood depths or river levels were used."
+        ),
+        "scenarios": scenario_records,
+    }
+    manifest_path = DATA_DIR / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    print("Manifest saved")
 
 if __name__ == "__main__":
     main()
