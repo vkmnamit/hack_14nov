@@ -194,3 +194,79 @@ are paired, not independently varied.
 The city-specific validation sweep selected a mass-loss weight of `5e-8`;
 selection uses only the 2023 validation year, not the 2024 test year.
 
+Fine-tune a separate checkpoint and evaluate both held-out splits:
+
+```sh
+.venv/bin/python train_convlstm.py \
+  --data data/processed/guwahati/guwahati_anuga_convlstm.npz \
+  --normalization ../model/guwahati_normalization.npz \
+  --output-weights ../model/guwahati_convlstm.pt \
+  --history ../model/guwahati_training.json \
+  --mass-loss-weight 5e-8
+
+.venv/bin/python evaluate_convlstm.py \
+  --data data/processed/guwahati/guwahati_anuga_convlstm.npz \
+  --normalization ../model/guwahati_normalization.npz \
+  --weights ../model/guwahati_convlstm.pt \
+  --carry-hidden-state \
+  --split validation \
+  --output-dir data/processed/guwahati/evaluation_validation
+
+.venv/bin/python evaluate_convlstm.py \
+  --data data/processed/guwahati/guwahati_anuga_convlstm.npz \
+  --normalization ../model/guwahati_normalization.npz \
+  --weights ../model/guwahati_convlstm.pt \
+  --carry-hidden-state \
+  --split test \
+  --output-dir data/processed/guwahati/evaluation_test
+```
+
+These are comparisons against ANUGA-generated scenarios, not observed Guwahati
+flood measurements or a calibrated operational forecast.
+
+## Run the Sotai/LISFLOOD-FP comparison
+
+```sh
+cd backend
+.venv/bin/python run_sotai_demo.py
+```
+
+The script downloads the public 1-arc-second SRTM `N28E077` HGT tile from the
+[AWS terrain tile dataset](https://registry.opendata.aws/terrain-tiles/) when
+it is not already present. The test location is the OpenStreetMap-mapped
+village of [Sotai](https://www.openstreetmap.org/?mlat=28.292798&mlon=77.359460#map=14/28.292798/77.359460),
+Ballabgarh, Faridabad, Haryana (28.2927976 N, 77.3594597 E).
+
+The script samples a 50 x 50 grid at 30 m spacing in UTM zone 43N and runs a
+one-hour, uniform 50 mm/hour **synthetic** storm with a constant 5 mm/hour
+infiltration loss and Manning's n of 0.05. These are demo assumptions, not
+observed weather or calibrated soil/land-cover parameters. ANUGA uses the
+effective rainfall rate (45 mm/hour); LISFLOOD-FP applies the same rainfall
+and a uniform infiltration rate. Both models use reflective boundaries on
+this square test domain.
+
+## Outputs
+
+`backend/data/processed/sotai_demo/` contains the projected ASCII DEM and
+metadata. ANUGA writes its native `.sww` file and `anuga_training_data.npz`,
+with time, centroid coordinates, water depth, momentum, velocity components,
+speed, and flow direction (radians). LISFLOOD-FP writes depth, velocity, and
+flux rasters at each output interval in its subdirectory; these are also
+packed into `lisflood_testing_data.npz`. `comparison_metrics.json` reports
+frame-by-frame depth RMSE and MAE after mapping ANUGA triangles to the shared
+50 x 50 raster. The run checks ANUGA rainfall-volume error and LISFLOOD-FP's
+volume-error diagnostic before reporting success.
+
+## Limitations
+
+Across the generated runs, mass-balance error checks numerical conservation,
+not real-world flood prediction accuracy. No observed Majuli flood depths or
+extents were used, so observational accuracy cannot yet be reported. The
+dataset is a small prototype, not sufficient by itself to claim generalization
+or production forecasting. SRTM's roughly 30 m terrain does not resolve
+buildings, drains, or small channels; the square domain is not a delineated
+catchment. Rainfall, infiltration, and roughness assumptions are synthetic
+and uncalibrated. Obtain a higher-resolution local DEM, observed rainfall,
+and validated land-cover/soil/drainage and flood-observation data before
+using results for research or decisions. Retain the AWS SRTM attribution when
+redistributing elevation data.
