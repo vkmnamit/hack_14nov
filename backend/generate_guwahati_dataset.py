@@ -322,3 +322,256 @@ def run_scenario(
     return states, raw_rainfall, effective_rainfall, mass_errors
 
 
+def main() -> None:
+    dem, xll, yll = load_dem()
+    rainfall, power_header = load_hourly_rainfall()
+    events = select_event_times(rainfall)
+    scenario_records: list[dict[str, object]] = []
+    states_list: list[np.ndarray] = []
+    raw_rain_list: list[np.ndarray] = []
+    effective_rain_list: list[np.ndarray] = []
+    mass_errors_list: list[np.ndarray] = []
+
+    total_scenarios = len(events) * len(PARAMETER_COMBINATIONS)
+    for event_time, split in events:
+        spinup_times = [
+            event_time - timedelta(hours=offset)
+            for offset in range(SPINUP_HOURS, 0, -1)
+        ]
+        rainfall_profile = [
+            rainfall[timestamp]
+            for timestamp in [*spinup_times, event_time]
+        ]
+        for manning_n, infiltration_loss in PARAMETER_COMBINATIONS:
+            scenario_id = len(scenario_records)
+            print(
+                f"Scenario {scenario_id + 1:02d}/{total_scenarios}: "
+                f"{event_time.isoformat()} {split}, "
+                f"rain={rainfall_profile[-1]:.2f} mm/hr, "
+                f"n={manning_n:.2f}, infiltration={infiltration_loss:.0f} mm/hr"
+            )
+            states, raw_rain, effective_rain, mass_errors = run_scenario(
+                dem,
+                xll,
+                yll,
+                rainfall_profile,
+                manning_n,
+                infiltration_loss,
+            )
+            states_list.append(states)
+            raw_rain_list.append(raw_rain)
+            effective_rain_list.append(effective_rain)
+            mass_errors_list.append(mass_errors)
+            speed = np.divide(
+                np.hypot(states[:, 1], states[:, 2]),
+                states[:, 0],
+                out=np.zeros_like(states[:, 0]),
+                where=states[:, 0] >= WET_THRESHOLD_M,
+            )
+            scenario_records.append(
+                {
+                    "scenario_id": scenario_id,
+                    "name": f"power_{event_time:%Y%m%d%H}_n{manning_n:.2f}",
+                    "event_time_lST": event_time.strftime("%Y-%m-%d %H:%M"),
+                    "temporal_profile": "NASA_POWER_hourly",
+                    "spatial_pattern": "uniform_downscaled",
+                    "rainfall_mm_hr_by_hour": rainfall_profile,
+                    "manning_n": manning_n,
+                    "infiltration_loss_mm_hr": infiltration_loss,
+                    "initial_condition": f"{SPINUP_HOURS}h_rain_spinup_from_dry",
+                    "boundary": "reflective on all sides",
+                    "split": split,
+                    "max_depth_m": float(states[:, 0].max()),
+                    "max_speed_m_s_where_depth_ge_1cm": float(speed.max()),
+                    "max_mass_balance_relative_error": float(mass_errors.max()),
+                    "final_mass_balance_relative_error": float(mass_errors[-1]),
+                    "final_inundated_cells_at_1cm": int(
+                        np.count_nonzero(states[-1, 0] >= WET_THRESHOLD_M)
+                    ),
+                }
+            )
+
+    states_array = np.stack(states_list)
+    raw_rain_array = np.stack(raw_rain_list)
+    effective_rain_array = np.stack(effective_rain_list)
+    mass_error_array = np.stack(mass_errors_list)
+    splits = np.asarray(
+        [record["split"] for record in scenario_records],
+        dtype="U10",
+    )
+    train_ids = np.flatnonzero(splits == "train")
+    train_states = states_array[train_ids]
+    state_mean = train_states.mean(axis=(0, 1, 3, 4), dtype=np.float64)
+    state_std = train_states.std(axis=(0, 1, 3, 4), dtype=np.float64)
+    train_rain = raw_rain_array[train_ids]
+    infiltration_maps = np.stack(
+        [
+            np.full(dem.shape, record["infiltration_loss_mm_hr"], dtype=np.float32)
+            for record in scenario_records
+        ]
+    )
+    manning_maps = np.stack(
+        [
+            np.full(dem.shape, record["manning_n"], dtype=np.float32)
+            for record in scenario_records
+        ]
+    )
+    train_infiltration = infiltration_maps[train_ids]
+    train_manning = manning_maps[train_ids]
+
+    metadata = {
+        "location": LOCATION,
+        "latitude": LATITUDE,
+        "longitude": LONGITUDE,
+        "crs": CRS,
+        "grid_cells": GRID_CELLS,
+        "cell_size_m": CELL_SIZE_M,
+        "times_standard": power_header["time_standard"],
+        "rainfall_source": "NASA POWER hourly PRECTOTCORR, MERRA2",
+        "rainfall_units": "mm/hour",
+        "terrain_source": "SRTM 1 arc-second, AWS Terrain Tiles, N26E091",
+        "rainfall_assumption": (
+            "One hourly NASA POWER point value is applied uniformly over the "
+            "50x50 local grid; the hourly value is held constant during that hour."
+        ),
+        "spinup_assumption": (
+            f"Each event starts dry and is spun up for {SPINUP_HOURS} hours "
+            "using preceding hourly precipitation."
+        ),
+        "infiltration_assumption": (
+            "Constant loss rates of 0, 5, and 10 mm/hour; not soil-calibrated."
+        ),
+        "manning_assumption": (
+            "Uniform Manning n values of 0.03, 0.05, and 0.08; "
+            "not land-cover-derived."
+        ),
+        "boundary_condition": "Reflective on all sides.",
+        "split_by_year": {
+            str(year): split for year, split in SPLIT_BY_YEAR.items()
+        },
+        "scenarios": scenario_records,
+    }
+    archive_path = OUTPUT_DIR / "guwahati_anuga_convlstm.npz"
+    normalization_path = MODEL_DIR / "guwahati_normalization.npz"
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
+
+    times = np.arange(FORECAST_STEPS + 1, dtype=np.float32) * OUTPUT_STEP_S
+    np.savez_compressed(
+        archive_path,
+        state_sequence=np.asarray(states_array, dtype=np.float32),
+        initial_state=np.asarray(states_array[:, 0], dtype=np.float32),
+        raw_rainfall_mm_hr=np.asarray(raw_rain_array, dtype=np.float32),
+        rainfall_effective_m_s=np.asarray(effective_rain_array, dtype=np.float32),
+        infiltration_loss_mm_hr=infiltration_maps,
+        elevation_m=np.asarray(dem, dtype=np.float32),
+        manning_n=manning_maps,
+        wet_mask_1cm=np.asarray(
+            states_array[:, :, 0] >= WET_THRESHOLD_M,
+            dtype=np.bool_,
+        ),
+        times_seconds=times,
+        scenario_ids=np.arange(total_scenarios, dtype=np.int16),
+        scenario_names=np.asarray(
+            [record["name"] for record in scenario_records],
+            dtype="U80",
+        ),
+        temporal_profiles=np.asarray(
+            [record["temporal_profile"] for record in scenario_records],
+            dtype="U32",
+        ),
+        spatial_patterns=np.asarray(
+            [record["spatial_pattern"] for record in scenario_records],
+            dtype="U32",
+        ),
+        initial_condition_names=np.asarray(
+            [record["initial_condition"] for record in scenario_records],
+            dtype="U32",
+        ),
+        rainfall_profiles_mm_hr=np.asarray(
+            [
+                [record["rainfall_mm_hr_by_hour"][-1]] * 6
+                for record in scenario_records
+            ],
+            dtype=np.float32,
+        ),
+        split=splits,
+        mass_balance_relative_error=mass_error_array,
+        state_channel_names=np.asarray(
+            ["depth_m", "xmomentum_m2_s", "ymomentum_m2_s"],
+            dtype="U32",
+        ),
+        raw_rainfall_units=np.asarray("mm/hour"),
+        effective_rainfall_units=np.asarray("m/second"),
+        input_channel_names=np.asarray(
+            [
+                "depth_m",
+                "xmomentum_m2_s",
+                "ymomentum_m2_s",
+                "raw_rainfall_mm_hr",
+                "infiltration_loss_mm_hr",
+                "elevation_m",
+                "manning_n",
+            ],
+            dtype="U32",
+        ),
+        normalization_state_mean=np.asarray(state_mean, dtype=np.float32),
+        normalization_state_std=np.maximum(state_std, 1e-8).astype(np.float32),
+        normalization_raw_rainfall_mean_mm_hr=np.float32(
+            train_rain.mean(dtype=np.float64)
+        ),
+        normalization_raw_rainfall_std_mm_hr=np.float32(
+            max(train_rain.std(dtype=np.float64), 1e-8)
+        ),
+        normalization_infiltration_mean_mm_hr=np.float32(
+            train_infiltration.mean(dtype=np.float64)
+        ),
+        normalization_infiltration_std_mm_hr=np.float32(
+            max(train_infiltration.std(dtype=np.float64), 1e-8)
+        ),
+        normalization_elevation_mean_m=np.float32(dem.mean(dtype=np.float64)),
+        normalization_elevation_std_m=np.float32(
+            max(dem.std(dtype=np.float64), 1e-8)
+        ),
+        normalization_manning_mean=np.float32(
+            train_manning.mean(dtype=np.float64)
+        ),
+        normalization_manning_std=np.float32(
+            max(train_manning.std(dtype=np.float64), 1e-8)
+        ),
+        metadata_json=np.asarray(json.dumps(metadata)),
+    )
+    np.savez_compressed(
+        normalization_path,
+        state_mean=np.asarray(state_mean, dtype=np.float32),
+        state_std=np.maximum(state_std, 1e-8).astype(np.float32),
+        rain_mean=np.float32(train_rain.mean(dtype=np.float64)),
+        rain_std=np.float32(max(train_rain.std(dtype=np.float64), 1e-8)),
+        infil_mean=np.float32(train_infiltration.mean(dtype=np.float64)),
+        infil_std=np.float32(
+            max(train_infiltration.std(dtype=np.float64), 1e-8)
+        ),
+        elev_mean=np.float32(dem.mean(dtype=np.float64)),
+        elev_std=np.float32(max(dem.std(dtype=np.float64), 1e-8)),
+        mann_mean=np.float32(train_manning.mean(dtype=np.float64)),
+        mann_std=np.float32(max(train_manning.std(dtype=np.float64), 1e-8)),
+    )
+    (OUTPUT_DIR / "metadata.json").write_text(
+        json.dumps(metadata, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(f"ANUGA dataset: {archive_path}")
+    print(f"Normalization: {normalization_path}")
+    print(
+        f"Scenarios: {len(train_ids)} train, "
+        f"{np.count_nonzero(splits == 'validation')} validation, "
+        f"{np.count_nonzero(splits == 'test')} test"
+    )
+    print(
+        "DEM elevation range: "
+        f"{dem.min():.1f} to {dem.max():.1f} m"
+    )
+
+
+if __name__ == "__main__":
+    main()
