@@ -135,3 +135,39 @@ The saved trajectories are ANUGA references, not observed flood measurements.
 The notebook's scenario index 36 is a training scenario in this dataset; use
 the validation report for held-out performance.
 
+## Fine-tune the ConvLSTM for recursive rollouts
+
+The original notebook trains on one-frame inputs and resets the recurrent
+state at each prediction. To train temporal memory for multi-step forecasts,
+run the local fine-tuning script:
+
+```sh
+cd backend
+.venv/bin/python train_convlstm.py
+```
+
+By default, it fine-tunes from the original checkpoint on the 36 training
+scenarios, carries hidden state across 10-frame truncated-backpropagation
+chunks, decays teacher forcing over 12 epochs, and selects the checkpoint with
+the best validation score across the 18 ANUGA validation scenarios. The score
+equally combines depth-MAE ratio, water-volume-error ratio, and wet-area CSI
+miss ratio against the original checkpoint. A validation-only sweep over
+mass-loss weights selected `1e-8`; pass `--mass-loss-weight` to override it.
+The original weights are kept;
+the selected model and epoch history are saved as
+`model/convlstm_multistep.pt` and `model/convlstm_multistep_training.json`.
+
+Evaluate that checkpoint with recurrent state carried between rollout steps:
+
+```sh
+.venv/bin/python evaluate_convlstm.py \
+  --weights ../model/convlstm_multistep.pt \
+  --carry-hidden-state \
+  --output-dir data/processed/majuli_training_v2/convlstm_multistep_evaluation
+```
+
+The validation set is used to select the checkpoint. After selection, run the
+separate test split once for a final assessment by adding `--split test` and
+using a different `--output-dir`. All three splits are synthetic ANUGA
+scenarios; they do not establish accuracy against observed floods.
+
