@@ -36,20 +36,20 @@ export default function SimulationTimeline({ className }: SimulationTimelineProp
     : '--:--';
 
   return (
-    <div className={cn('flex h-16 items-center gap-4 border-t border-[#202b34] bg-[#080b0f]/95 px-4 shadow-[0_-8px_24px_rgba(0,0,0,0.42)] backdrop-blur-xl', className)}>
-      <button onClick={() => state.playing ? setPlaying(false) : setPlaying(true)} disabled={maxIndex === 0} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#b8ff24] text-[#030405] shadow-[0_0_14px_rgba(184,255,36,0.3)] transition hover:scale-105 hover:bg-[#d8ff75] disabled:opacity-40 disabled:hover:scale-100" aria-label={state.playing ? 'Pause playback' : 'Play playback'}>
+    <div className={cn('flex h-14 items-center gap-3 border-t border-[var(--varuna-border)] bg-black/85 px-4 backdrop-blur-xl', className)}>
+      <button onClick={() => state.playing ? setPlaying(false) : setPlaying(true)} disabled={maxIndex === 0} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#b8ff24] text-black shadow-[0_0_16px_rgba(184,255,36,0.3)] transition hover:bg-[#d7ff70] disabled:opacity-40" aria-label={state.playing ? 'Pause playback' : 'Play playback'}>
         {state.playing ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
       </button>
-      <button onClick={() => setFrame(Math.max(0, state.currentFrameIndex - 1))} disabled={state.currentFrameIndex === 0} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-[#7e8b96] transition hover:bg-[#111820] hover:text-[#e8edf2] disabled:opacity-30" aria-label="Previous frame"><SkipBack size={15} /></button>
-      <button onClick={() => setFrame(Math.min(maxIndex, state.currentFrameIndex + 1))} disabled={state.currentFrameIndex >= maxIndex} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-[#7e8b96] transition hover:bg-[#111820] hover:text-[#e8edf2] disabled:opacity-30" aria-label="Next frame"><SkipForward size={15} /></button>
+      <button onClick={() => setFrame(Math.max(0, state.currentFrameIndex - 1))} disabled={state.currentFrameIndex === 0} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-[#9a9a9a] transition hover:text-white disabled:opacity-30" aria-label="Previous frame"><SkipBack size={15} /></button>
+      <button onClick={() => setFrame(Math.min(maxIndex, state.currentFrameIndex + 1))} disabled={state.currentFrameIndex >= maxIndex} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-[#9a9a9a] transition hover:text-white disabled:opacity-30" aria-label="Next frame"><SkipForward size={15} /></button>
 
       <div className="relative min-w-0 flex-1">
-        <Slider value={[state.currentFrameIndex]} min={0} max={maxIndex || 1} step={1} onValueChange={([v]) => { setPlaying(false); setFrame(v); }} disabled={maxIndex === 0} className="[&_[data-radix-slider-track]]:h-1.5 [&_[data-radix-slider-track]]:bg-[#26333d] [&_[data-radix-slider-range]]:bg-[#b8ff24] [&_[data-radix-slider-thumb]]:h-3.5 [&_[data-radix-slider-thumb]]:w-3.5 [&_[data-radix-slider-thumb]]:border-2 [&_[data-radix-slider-thumb]]:border-[#d8ff75] [&_[data-radix-slider-thumb]]:bg-[#111820] [&_[data-radix-slider-thumb]]:shadow-[0_0_10px_rgba(184,255,36,0.35)]" aria-label="Scrub through simulation frames" />
-        <div className="mt-0.5 flex justify-between font-mono-num text-[9px] text-[#7e8b96]">{timelineMarks.map((m) => <span key={m}>{m} min</span>)}</div>
+        <Slider value={[state.currentFrameIndex]} min={0} max={maxIndex || 1} step={1} onValueChange={([v]) => { setPlaying(false); setFrame(v); }} disabled={maxIndex === 0} className="[&_[data-radix-slider-track]]:h-1.5 [&_[data-radix-slider-track]]:bg-white/20 [&_[data-radix-slider-range]]:bg-[#b8ff24] [&_[data-radix-slider-thumb]]:h-3.5 [&_[data-radix-slider-thumb]]:w-3.5 [&_[data-radix-slider-thumb]]:border-2 [&_[data-radix-slider-thumb]]:border-[#b8ff24] [&_[data-radix-slider-thumb]]:bg-black [&_[data-radix-slider-thumb]]:shadow-[0_0_10px_rgba(184,255,36,0.35)]" aria-label="Scrub through simulation frames" />
+        <div className="mt-0.5 flex justify-between font-tabular text-[9px] text-[#666]">{timelineMarks.map((m) => <span key={m}>{m} min</span>)}</div>
       </div>
 
-      <div className="flex shrink-0 overflow-hidden rounded-sm border border-[#202b34]">{SPEEDS.map((s) => <button key={s} onClick={() => setSpeed(s)} className={cn('px-2 py-1 font-mono-num text-[11px] transition-colors', state.playbackSpeed === s ? 'bg-[#b8ff24]/15 text-[#b8ff24]' : 'text-[#7e8b96] hover:bg-[#111820] hover:text-[#e8edf2]')}>{s}x</button>)}</div>
-      <div className="shrink-0 rounded-sm border border-[#202b34] bg-[#111820] px-3 py-1.5 text-right"><p className="font-mono-num text-sm font-semibold leading-tight text-[#b8ff24]">T+{minutes} min</p><p className="font-mono-num text-[10px] leading-tight text-[#7e8b96]">{timestamp}</p></div>
+      <div className="flex shrink-0 gap-2">{SPEEDS.map((s) => <button key={s} onClick={() => setSpeed(s)} className={cn('px-1 py-1 font-tabular text-[11px] transition-colors', state.playbackSpeed === s ? 'text-white underline underline-offset-4' : 'text-[#666] hover:text-white')}>{s}x</button>)}</div>
+      <div className="shrink-0 border-l border-[var(--varuna-border)] pl-3 text-right"><p className="font-tabular text-sm font-semibold leading-tight text-white">T+{minutes} min</p><p className="font-tabular text-[10px] leading-tight text-[#666]">{timestamp}</p></div>
     </div>
   );
 }
