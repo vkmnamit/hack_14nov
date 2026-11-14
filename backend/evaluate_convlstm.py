@@ -290,3 +290,72 @@ def calculate_metrics(predicted: np.ndarray, truth: np.ndarray) -> dict[str, flo
     return result
 
 
+def scenario_parameters(data: Any, index: int) -> dict[str, Any]:
+    rainfall_profile = data["rainfall_profiles_mm_hr"][index]
+    infiltration = data["infiltration_loss_mm_hr"][index]
+    manning = data["manning_n"][index]
+    return {
+        "scenario_index": int(index),
+        "scenario_id": int(data["scenario_ids"][index]),
+        "scenario_name": str(data["scenario_names"][index]),
+        "temporal_profile": str(data["temporal_profiles"][index]),
+        "spatial_pattern": str(data["spatial_patterns"][index]),
+        "initial_condition": str(data["initial_condition_names"][index]),
+        "rainfall_profile_mm_hr": [float(x) for x in rainfall_profile],
+        "infiltration_min_mm_hr": float(np.min(infiltration)),
+        "infiltration_mean_mm_hr": float(np.mean(infiltration)),
+        "infiltration_max_mm_hr": float(np.max(infiltration)),
+        "manning_min": float(np.min(manning)),
+        "manning_mean": float(np.mean(manning)),
+        "manning_max": float(np.max(manning)),
+        "elevation_min_m": float(np.min(data["elevation_m"])),
+        "elevation_mean_m": float(np.mean(data["elevation_m"])),
+        "elevation_max_m": float(np.max(data["elevation_m"])),
+    }
+
+
+def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, float | None]:
+    metric_names = [
+        key
+        for key in rows[0]
+        if key not in {"scenario_index", "scenario_id", "scenario_name", "split", "minute"}
+        and isinstance(rows[0][key], (int, float))
+    ]
+    aggregates: dict[str, float | None] = {}
+    for name in metric_names:
+        values = [row[name] for row in rows if row[name] is not None]
+        aggregates[name] = float(np.mean(values)) if values else None
+    return aggregates
+
+
+def build_grouped_summary(
+    rows: list[dict[str, Any]],
+    parameters_by_index: dict[int, dict[str, Any]],
+) -> dict[str, Any]:
+    dimensions = (
+        "temporal_profile",
+        "spatial_pattern",
+        "initial_condition",
+        "infiltration_mean_mm_hr",
+        "manning_mean",
+    )
+    grouped: dict[str, Any] = {}
+    for dimension in dimensions:
+        groups: dict[str, list[dict[str, Any]]] = {}
+        for row in rows:
+            scenario = parameters_by_index[row["scenario_index"]]
+            value = scenario[dimension]
+            label = f"{value:.3f}" if isinstance(value, float) else str(value)
+            groups.setdefault(label, []).append(row)
+        grouped[dimension] = {
+            label: {
+                "scenario_count": len(
+                    {row["scenario_index"] for row in group_rows}
+                ),
+                "metrics": aggregate_rows(group_rows),
+            }
+            for label, group_rows in sorted(groups.items())
+        }
+    return grouped
+
+
