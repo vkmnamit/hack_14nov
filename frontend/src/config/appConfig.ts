@@ -18,8 +18,8 @@ export const CESIUM_ION_TOKEN: string =
 /** Base URL of the future FastAPI backend (no trailing slash). */
 export const API_BASE_URL: string = env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
-/** Demo mode is explicit and can be disabled with VITE_DEMO_MODE=false. */
-export const DEMO_MODE_DEFAULT = env.VITE_DEMO_MODE !== 'false';
+/** Demo mode is an explicit fallback and can be enabled with VITE_DEMO_MODE=true. */
+export const DEMO_MODE_DEFAULT = env.VITE_DEMO_MODE === 'true';
 
 /** Optional backend weather/radar integrations. Empty values keep them disabled. */
 export const WEATHER_PROVIDER = env.VITE_WEATHER_PROVIDER ?? '';

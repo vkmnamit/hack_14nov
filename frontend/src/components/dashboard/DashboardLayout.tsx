@@ -98,6 +98,8 @@ function Dashboard() {
             <CesiumMap
               terrain={state.dataset?.terrain ?? null}
               frame={frame}
+              frames={state.dataset?.frames ?? []}
+              frameIndex={state.currentFrameIndex}
               longitude={state.location.longitude}
               latitude={state.location.latitude}
               cameraHeight={state.location.cameraHeight}

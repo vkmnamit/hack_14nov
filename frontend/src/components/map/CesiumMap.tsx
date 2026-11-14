@@ -8,6 +8,7 @@ import {
   BoxEmitter,
   Color,
   ColorGeometryInstanceAttribute,
+  GroundPrimitive,
   GeometryInstance,
   ImageryLayer,
   Matrix4,
@@ -24,6 +25,7 @@ import {
   PolylineCollection,
   Primitive,
   Rectangle,
+  RectangleGeometry,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   UrlTemplateImageryProvider,
@@ -38,6 +40,8 @@ import { buildGridGeometry } from '@/lib/cesiumGridGeometry';
 interface CesiumMapProps {
   terrain: TerrainGrid | null;
   frame: FloodFrame | null;
+  frames: FloodFrame[];
+  frameIndex: number;
   longitude: number;
   latitude: number;
   cameraHeight: number;
@@ -68,68 +72,10 @@ export type CameraPreset = 'global' | 'india' | 'bengaluru' | 'study';
 /** Half-extent of the simulated tile in degrees — roughly a 1.6 km urban tile. */
 const HALF_EXTENT_DEG = 0.0075;
 
-const BANDS: { max: number; color: string; alpha: number }[] = [
-  { max: 0.05, color: '#9BD8F5', alpha: 0.6 },
-  { max: 0.15, color: '#00D4FF', alpha: 0.7 },
-  { max: 0.3, color: '#1560D4', alpha: 0.75 },
-  { max: 0.5, color: '#FFB547', alpha: 0.8 },
-  { max: Infinity, color: '#FF4545', alpha: 0.88 },
-];
-
 const DEFAULT_DEPTH_EXAGGERATION = 4;
 const WATER_OFFSET_M = 0.16;
-
-function createAnimatedWaterMaterial(flowX = 0, flowY = 0, flowSpeed = 0): Material {
-  const magnitude = Math.hypot(flowX, flowY);
-  const direction = magnitude > 0.001 ? new Cartesian2(flowX / magnitude, flowY / magnitude) : new Cartesian2(0.7, 0.35);
-  return new Material({
-    fabric: {
-      type: 'VARUNA_ANIMATED_WATER',
-      uniforms: {
-        color: Color.fromCssColorString('#087dbd').withAlpha(0.78),
-        flowDirection: direction,
-        flowSpeed: Math.min(2, Math.max(0.15, magnitude + flowSpeed * 0.15)),
-      },
-      source: `
-        czm_material czm_getMaterial(czm_materialInput materialInput)
-        {
-          czm_material material = czm_getDefaultMaterial(materialInput);
-          vec2 uv = materialInput.st;
-          float phase = czm_frameNumber * 0.012 * flowSpeed;
-          vec2 drift = flowDirection * phase;
-          float waveA = sin((uv.x + drift.x) * 95.0 + (uv.y + drift.y) * 42.0);
-          float waveB = sin((uv.x - drift.x * 0.65) * 48.0 - (uv.y - drift.y * 0.65) * 88.0);
-          float ripple = 0.5 + 0.5 * (waveA * 0.58 + waveB * 0.42);
-          float edge = smoothstep(0.12, 0.52, ripple);
-          material.diffuse = color.rgb * (0.7 + ripple * 0.42);
-          material.emission = color.rgb * (0.12 + edge * 0.12);
-          material.alpha = color.a * (0.86 + ripple * 0.1);
-          return material;
-        }
-      `,
-    },
-    translucent: true,
-  });
-}
-
-function bandIndexForDepth(depth: number): number {
-  for (let i = 0; i < BANDS.length; i++) if (depth < BANDS[i].max) return i;
-  return BANDS.length - 1;
-}
-
-function averageVelocity(frame: FloodFrame): { x: number; y: number } {
-  if (!frame.velocityX || !frame.velocityY) return { x: 0, y: 0 };
-  let x = 0;
-  let y = 0;
-  let count = 0;
-  for (let i = 0; i < frame.depths.length; i++) {
-    if (frame.depths[i] < 0.01) continue;
-    x += frame.velocityX[i] ?? 0;
-    y += frame.velocityY[i] ?? 0;
-    count++;
-  }
-  return count > 0 ? { x: x / count, y: y / count } : { x: 0, y: 0 };
-}
+const FLOOD_IMAGE_SIZE = 512;
+const DEPTH_TEXTURE_SCALE = 4;
 
 function rectFor(longitude: number, latitude: number): Rectangle {
   return Rectangle.fromDegrees(
@@ -140,11 +86,119 @@ function rectFor(longitude: number, latitude: number): Rectangle {
   );
 }
 
+function depthToCanvas(depth: number[], size: number): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = FLOOD_IMAGE_SIZE;
+  canvas.height = FLOOD_IMAGE_SIZE;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Unable to create the flood overlay canvas.');
+
+  const image = context.createImageData(FLOOD_IMAGE_SIZE, FLOOD_IMAGE_SIZE);
+  for (let y = 0; y < FLOOD_IMAGE_SIZE; y++) {
+    const sourceRow = Math.min(size - 1, Math.floor((y / FLOOD_IMAGE_SIZE) * size));
+    for (let x = 0; x < FLOOD_IMAGE_SIZE; x++) {
+      const sourceColumn = Math.min(size - 1, Math.floor((x / FLOOD_IMAGE_SIZE) * size));
+      const encodedDepth = Math.min(
+        1,
+        Math.max(0, (depth[sourceRow * size + sourceColumn] ?? 0) / DEPTH_TEXTURE_SCALE)
+      );
+      const value = Math.round(encodedDepth * 255);
+      const offset = (y * FLOOD_IMAGE_SIZE + x) * 4;
+      image.data[offset] = value;
+      image.data[offset + 1] = value;
+      image.data[offset + 2] = value;
+      image.data[offset + 3] = 255;
+    }
+  }
+  context.putImageData(image, 0, 0);
+  return canvas;
+}
+
 function safeRemove(viewer: CesiumViewer, primitive: Primitive | null): Primitive | null {
   if (primitive && !primitive.isDestroyed()) {
     viewer.scene.primitives.remove(primitive);
   }
   return null;
+}
+
+function safeRemoveGround(viewer: CesiumViewer, primitive: GroundPrimitive | null): GroundPrimitive | null {
+    if (primitive && !primitive.isDestroyed()) {
+      viewer.scene.primitives.remove(primitive);
+    }
+    return null;
+  }
+
+function createFloodMaterial(
+    previousDepthTexture: HTMLCanvasElement,
+    depthTexture: HTMLCanvasElement
+  ): Material {
+    return new Material({
+      translucent: true,
+      fabric: {
+        type: 'VARUNA_SMOOTH_FLOOD',
+        uniforms: {
+          previousDepthTexture,
+          depthTexture,
+          depthTextureScale: DEPTH_TEXTURE_SCALE,
+          mixAmount: 1,
+          exaggeration: DEFAULT_DEPTH_EXAGGERATION,
+          texelSize: new Cartesian2(1 / FLOOD_IMAGE_SIZE, 1 / FLOOD_IMAGE_SIZE),
+        },
+        source: `
+          uniform sampler2D previousDepthTexture;
+          uniform sampler2D depthTexture;
+          uniform float depthTextureScale;
+          uniform float mixAmount;
+          uniform float exaggeration;
+          uniform vec2 texelSize;
+
+          float sampleDepth(sampler2D textureSampler, vec2 uv) {
+            vec2 offset = texelSize * 0.5;
+            float northwest = texture(textureSampler, uv + vec2(-offset.x, -offset.y)).r;
+            float northeast = texture(textureSampler, uv + vec2(offset.x, -offset.y)).r;
+            float southwest = texture(textureSampler, uv + vec2(-offset.x, offset.y)).r;
+            float southeast = texture(textureSampler, uv + vec2(offset.x, offset.y)).r;
+            return (northwest + northeast + southwest + southeast) * 0.25 * depthTextureScale;
+          }
+
+          vec3 floodColor(float depth) {
+            vec3 lightBlue = vec3(0.608, 0.847, 0.961);
+            vec3 cyan = vec3(0.0, 0.831, 1.0);
+            vec3 blue = vec3(0.082, 0.376, 0.831);
+            vec3 orange = vec3(1.0, 0.710, 0.278);
+            vec3 red = vec3(1.0, 0.271, 0.271);
+            if (depth < 0.05) return mix(lightBlue, cyan, smoothstep(0.0, 0.05, depth));
+            if (depth < 0.15) return mix(cyan, blue, smoothstep(0.05, 0.15, depth));
+            if (depth < 0.30) return mix(blue, orange, smoothstep(0.15, 0.30, depth));
+            if (depth < 0.50) return mix(orange, red, smoothstep(0.30, 0.50, depth));
+            return red;
+          }
+
+          czm_material czm_getMaterial(czm_materialInput materialInput) {
+            czm_material material = czm_getDefaultMaterial(materialInput);
+            vec2 uv = materialInput.st;
+            float previousDepth = sampleDepth(previousDepthTexture, uv);
+            float currentDepth = sampleDepth(depthTexture, uv);
+            float depth = mix(previousDepth, currentDepth, mixAmount);
+            float waterMask = smoothstep(0.0, 0.03, depth);
+            float edgeDistance = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+            float edgeFade = smoothstep(0.0, 0.035, edgeDistance);
+            float shoreline = smoothstep(0.005, 0.045, depth) *
+              (1.0 - smoothstep(0.045, 0.12, depth));
+            float ripple = sin((uv.x * 240.0 + uv.y * 150.0) +
+              czm_frameNumber * 0.018 * (0.6 + exaggeration * 0.08));
+            ripple = 0.5 + 0.5 * ripple;
+            vec3 color = floodColor(depth);
+            color = mix(color, vec3(0.86, 0.95, 1.0), shoreline * 0.45);
+            color *= 0.88 + ripple * 0.14;
+            material.diffuse = color;
+            material.emission = color * (0.06 + ripple * 0.04);
+            material.alpha = waterMask * edgeFade * clamp(0.58 + exaggeration * 0.035, 0.58, 0.86);
+            return material;
+          }
+        `,
+      },
+    });
 }
 
 function createRainTexture(): HTMLCanvasElement {
@@ -204,6 +258,8 @@ function flyToPreset(
 export default function CesiumMap({
   terrain,
   frame,
+  frames,
+  frameIndex,
   longitude,
   latitude,
   cameraHeight,
@@ -224,8 +280,11 @@ export default function CesiumMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<CesiumViewer | null>(null);
   const terrainPrimitiveRef = useRef<Primitive | null>(null);
-  const floodPrimitiveRef = useRef<Primitive | null>(null);
-  const waterAnimationPrimitiveRef = useRef<Primitive | null>(null);
+  const floodGroundPrimitiveRef = useRef<GroundPrimitive | null>(null);
+  const floodMaterialRef = useRef<Material | null>(null);
+  const depthTextureCacheRef = useRef(new Map<number, HTMLCanvasElement>());
+  const displayedFrameIndexRef = useRef<number | null>(null);
+  const floodTransitionRef = useRef<number | null>(null);
   const buildingsRef = useRef<Cesium3DTileset | null>(null);
   const imageryLayerRef = useRef<ImageryLayer | null>(null);
   const radarLayerRef = useRef<ImageryLayer | null>(null);
@@ -237,8 +296,6 @@ export default function CesiumMap({
   const flowSpeedMultiplierRef = useRef(flowSpeedMultiplier);
   const flowBoundsRef = useRef({ longitude, latitude });
   const depthExaggerationRef = useRef(DEFAULT_DEPTH_EXAGGERATION);
-  const previousDepthsRef = useRef<number[] | null>(null);
-  const floodTransitionRef = useRef<number | null>(null);
   const [depthExaggeration, setDepthExaggeration] = useState(DEFAULT_DEPTH_EXAGGERATION);
 
   useEffect(() => {
@@ -249,6 +306,9 @@ export default function CesiumMap({
 
   useEffect(() => {
     depthExaggerationRef.current = depthExaggeration;
+    if (floodMaterialRef.current) {
+      floodMaterialRef.current.uniforms.exaggeration = depthExaggeration;
+    }
   }, [depthExaggeration]);
 
   // --- One-time viewer bootstrapping --------------------------------------
@@ -262,7 +322,7 @@ export default function CesiumMap({
       })
     );
     baseLayer.brightness = 1.18;
-    baseLayer.contrast = 1.08;
+    baseLayer.contrast = 1.12;
     baseLayer.saturation = 1.12;
     baseLayer.gamma = 0.92;
 
@@ -348,7 +408,8 @@ export default function CesiumMap({
       flowPointsRef.current = null;
       flowTrailsRef.current = null;
       rainSystemRef.current = null;
-      waterAnimationPrimitiveRef.current = null;
+      floodGroundPrimitiveRef.current = null;
+      floodMaterialRef.current = null;
       buildingsRef.current = null;
       imageryLayerRef.current = null;
       viewer.destroy();
@@ -579,131 +640,104 @@ export default function CesiumMap({
     };
   }, [terrain, longitude, latitude]);
 
-  // --- Flood surface, interpolated between active frames -------------------
+  // --- Smooth flood surface with texture crossfade -------------------------
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || !terrain || !frame) {
+    if (!viewer || !terrain || frames.length === 0) {
       if (viewer) {
-        floodPrimitiveRef.current = safeRemove(viewer, floodPrimitiveRef.current);
-        waterAnimationPrimitiveRef.current = safeRemove(viewer, waterAnimationPrimitiveRef.current);
+        floodGroundPrimitiveRef.current = safeRemoveGround(viewer, floodGroundPrimitiveRef.current);
       }
-      previousDepthsRef.current = null;
+      floodMaterialRef.current = null;
+      depthTextureCacheRef.current.clear();
+      displayedFrameIndexRef.current = null;
       return;
     }
 
     const rect = rectFor(longitude, latitude);
-    const targetDepths = frame.depths;
-    const previousDepths = previousDepthsRef.current;
-    const startDepths =
-      previousDepths && previousDepths.length === targetDepths.length
-        ? previousDepths
-        : targetDepths;
-    previousDepthsRef.current = [...targetDepths];
-
-    const renderDepths = (depths: number[]) => {
-      floodPrimitiveRef.current = safeRemove(viewer, floodPrimitiveRef.current);
-      waterAnimationPrimitiveRef.current = safeRemove(viewer, waterAnimationPrimitiveRef.current);
-
-      const instances: GeometryInstance[] = [];
-      for (let band = 0; band < BANDS.length; band++) {
-        const geometry = buildGridGeometry(
-          terrain,
-          rect,
-          depths,
-          bandIndexForDepth,
-          band,
-          { heightOffset: WATER_OFFSET_M, depthScale: depthExaggerationRef.current }
-        );
-        if (!geometry) continue;
-        const b = BANDS[band];
-        instances.push(
-          new GeometryInstance({
-            geometry,
-            attributes: {
-              color: ColorGeometryInstanceAttribute.fromColor(
-                Color.fromCssColorString(b.color).withAlpha(Math.max(0.78, b.alpha))
-              ),
-            },
-          })
-        );
-      }
-
-      if (instances.length > 0) {
-        const floodPrimitive = new Primitive({
-          geometryInstances: instances,
-          appearance: new PerInstanceColorAppearance({
-            flat: true,
-            translucent: true,
-          }),
-          asynchronous: false,
-        });
-        viewer.scene.primitives.add(floodPrimitive);
-        floodPrimitiveRef.current = floodPrimitive;
-
-        const animatedGeometry = buildGridGeometry(
-          terrain,
-          rect,
-          depths,
-          () => 0,
-          0,
-          { heightOffset: WATER_OFFSET_M + 0.04, depthScale: depthExaggerationRef.current }
-        );
-        if (animatedGeometry) {
-          const flow = averageVelocity(frame);
-          const waterPrimitive = new Primitive({
-            geometryInstances: new GeometryInstance({ geometry: animatedGeometry }),
-            appearance: new MaterialAppearance({
-              material: createAnimatedWaterMaterial(
-                flow.x,
-                flow.y,
-                flowSpeedMultiplierRef.current
-              ),
-              materialSupport: MaterialAppearance.MaterialSupport.TEXTURED,
-              faceForward: true,
-              translucent: true,
-            }),
-            asynchronous: false,
-          });
-          viewer.scene.primitives.add(waterPrimitive);
-          waterAnimationPrimitiveRef.current = waterPrimitive;
-        }
-      }
+    const getDepthTexture = (index: number): HTMLCanvasElement => {
+      const cached = depthTextureCacheRef.current.get(index);
+      if (cached) return cached;
+      const texture = depthToCanvas(frames[index].depths, terrain.size);
+      depthTextureCacheRef.current.set(index, texture);
+      return texture;
     };
-
-    if (floodTransitionRef.current !== null) {
-      cancelAnimationFrame(floodTransitionRef.current);
-    }
-
-    const startedAt = performance.now();
-    let lastStep = -1;
-    const animateTransition = (now: number) => {
-      const progress = Math.min(1, (now - startedAt) / 420);
-      const step = progress === 1 ? 6 : Math.floor(progress * 6);
-      if (step !== lastStep) {
-        lastStep = step;
-        const eased = progress * progress * (3 - 2 * progress);
-        const depths = targetDepths.map(
-          (depth, index) => startDepths[index] + (depth - startDepths[index]) * eased
-        );
-        renderDepths(depths);
-      }
-      if (progress < 1) {
-        floodTransitionRef.current = requestAnimationFrame(animateTransition);
-      } else {
-        floodTransitionRef.current = null;
-      }
-    };
-    floodTransitionRef.current = requestAnimationFrame(animateTransition);
+    const initialIndex = Math.min(frameIndex, frames.length - 1);
+    const initialTexture = getDepthTexture(initialIndex);
+    const material = createFloodMaterial(initialTexture, initialTexture);
+    const groundPrimitive = new GroundPrimitive({
+      geometryInstances: new GeometryInstance({
+        geometry: new RectangleGeometry({
+          rectangle: rect,
+          granularity: CesiumMath.RADIANS_PER_DEGREE / 90,
+          vertexFormat: MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat,
+        }),
+      }),
+      appearance: new MaterialAppearance({
+        material,
+        materialSupport: MaterialAppearance.MaterialSupport.TEXTURED,
+        faceForward: true,
+        translucent: true,
+      }),
+      asynchronous: false,
+    });
+    viewer.scene.primitives.add(groundPrimitive);
+    floodGroundPrimitiveRef.current = groundPrimitive;
+    floodMaterialRef.current = material;
+    displayedFrameIndexRef.current = initialIndex;
 
     return () => {
       if (floodTransitionRef.current !== null) {
         cancelAnimationFrame(floodTransitionRef.current);
         floodTransitionRef.current = null;
       }
-      floodPrimitiveRef.current = safeRemove(viewer, floodPrimitiveRef.current);
-      waterAnimationPrimitiveRef.current = safeRemove(viewer, waterAnimationPrimitiveRef.current);
+      floodGroundPrimitiveRef.current = safeRemoveGround(viewer, floodGroundPrimitiveRef.current);
+      floodMaterialRef.current = null;
+      depthTextureCacheRef.current.clear();
     };
-  }, [frame, terrain, longitude, latitude, depthExaggeration]);
+  }, [frames, terrain, longitude, latitude]);
+
+  useEffect(() => {
+    const material = floodMaterialRef.current;
+    if (!material || !terrain || frames.length === 0) return;
+
+    const getDepthTexture = (index: number): HTMLCanvasElement => {
+      const cached = depthTextureCacheRef.current.get(index);
+      if (cached) return cached;
+      const texture = depthToCanvas(frames[index].depths, terrain.size);
+      depthTextureCacheRef.current.set(index, texture);
+      return texture;
+    };
+    const nextIndex = Math.min(frameIndex, frames.length - 1);
+    const previousIndex = displayedFrameIndexRef.current ?? nextIndex;
+    material.uniforms.previousDepthTexture = getDepthTexture(previousIndex);
+    material.uniforms.depthTexture = getDepthTexture(nextIndex);
+    material.uniforms.mixAmount = previousIndex === nextIndex ? 1 : 0;
+    displayedFrameIndexRef.current = nextIndex;
+
+    if (floodTransitionRef.current !== null) {
+      cancelAnimationFrame(floodTransitionRef.current);
+    }
+    if (previousIndex === nextIndex) return;
+
+    const startedAt = performance.now();
+    const animateMix = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / 420);
+      material.uniforms.mixAmount = progress * progress * (3 - 2 * progress);
+      if (progress < 1) {
+        floodTransitionRef.current = requestAnimationFrame(animateMix);
+      } else {
+        floodTransitionRef.current = null;
+      }
+    };
+    floodTransitionRef.current = requestAnimationFrame(animateMix);
+
+    return () => {
+      if (floodTransitionRef.current !== null) {
+        cancelAnimationFrame(floodTransitionRef.current);
+        floodTransitionRef.current = null;
+      }
+    };
+  }, [frameIndex, frames, terrain]);
 
   // --- Velocity-driven flow particles -------------------------------------
   useEffect(() => {

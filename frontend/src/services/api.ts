@@ -59,40 +59,13 @@ export interface DemoLocation {
 
 export const DEMO_LOCATIONS: DemoLocation[] = [
   {
-    id: 'bellandur-lake',
-    name: 'Bellandur Lake Corridor',
-    region: 'Devarabeesanahalli, Bengaluru',
-    longitude: 77.6762,
-    latitude: 12.9261,
-    cameraHeight: 2400,
+    id: 'majuli-garamur',
+    name: 'Garamur, Majuli',
+    region: 'Majuli, Assam, India',
+    longitude: 94.1574452,
+    latitude: 26.980306,
+    cameraHeight: 2600,
     seed: 1337,
-  },
-  {
-    id: 'devarabeesanahalli',
-    name: 'Devarabeesanahalli Tech District',
-    region: 'Outer Ring Road, Bengaluru',
-    longitude: 77.681,
-    latitude: 12.935,
-    cameraHeight: 3100,
-    seed: 4242,
-  },
-  {
-    id: 'hsr-layout',
-    name: 'HSR Layout Catchment',
-    region: 'Southern Bengaluru, Karnataka',
-    longitude: 77.6387,
-    latitude: 12.9116,
-    cameraHeight: 2800,
-    seed: 90210,
-  },
-  {
-    id: 'koramangala-valley',
-    name: 'Koramangala Valley',
-    region: 'Urban drainage basin, Bengaluru',
-    longitude: 77.6228,
-    latitude: 12.9352,
-    cameraHeight: 3400,
-    seed: 777,
   },
 ];
 

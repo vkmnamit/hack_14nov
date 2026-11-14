@@ -1,7 +1,26 @@
 # Majuli ANUGA training dataset
 
-This prototype uses ANUGA to generate shallow-water sequences over public SRTM
-terrain near Garamur, Majuli, Assam. The older Sotai/LISFLOOD-FP setup remains
+## Run the frontend integration API
+
+The checked-in Majuli demo output is served by a small FastAPI adapter. Install
+the backend dependencies, then start the API from the repository root:
+
+```sh
+python3 -m venv backend/.venv
+backend/.venv/bin/python -m pip install -r backend/requirements.txt
+backend/.venv/bin/uvicorn backend.app:app --reload --port 8000
+```
+
+The frontend uses connected mode by default and expects the API at
+`http://localhost:8000`. Set `VITE_API_BASE_URL` to use another origin, or set
+`VITE_DEMO_MODE=true` when the backend is intentionally unavailable. If the
+generated output is missing, create it first with
+`backend/.venv/bin/python backend/run_majuli_demo.py`.
+
+When ANUGA is installed, `/api/simulation/{id}/frames` runs a parameterized
+ANUGA shallow-water simulation using the requested rainfall intensity, duration,
+and pattern. Set `VARUNA_USE_LIVE_ANUGA=false` to force the checked-in
+precomputed output fallback. The older Sotai/LISFLOOD-FP setup remains
 available as a separate comparison baseline.
 
 ## Installed models
