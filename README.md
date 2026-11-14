@@ -124,10 +124,13 @@ Python Web Service in Render using the repository root as its root directory
 (leave Render's Root Directory blank), then configure:
 
 ```text
-Build Command: pip install -r backend/requirements.txt
+Build Command: pip install -r requirements.txt
 Start Command: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
 Health Check Path: /api/health
 ```
+
+The root `requirements.txt` includes `backend/requirements.txt`, so the Render
+build command works from the repository root.
 
 In the Vercel project's Environment Variables, set `VITE_API_BASE_URL` to the
 Render service URL (for example, `https://your-service.onrender.com`, without

@@ -29,10 +29,12 @@ directory, so do not set the service root to `backend/`.
 Use these Render settings:
 
 ```text
-Build Command: pip install -r backend/requirements.txt
+Build Command: pip install -r requirements.txt
 Start Command: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
 Health Check Path: /api/health
 ```
+
+The root `requirements.txt` includes the backend dependency list.
 
 The backend allows requests from `https://hack-14nov.vercel.app`. In Vercel,
 set `VITE_API_BASE_URL` to the Render service's assigned HTTPS URL and
