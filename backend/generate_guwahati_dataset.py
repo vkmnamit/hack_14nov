@@ -173,3 +173,13 @@ def select_event_times(
     return selected
 
 
+def rasterize(values: np.ndarray, cell_ids: np.ndarray) -> np.ndarray:
+    sums = np.bincount(
+        cell_ids,
+        weights=values,
+        minlength=GRID_CELLS**2,
+    )
+    counts = np.bincount(cell_ids, minlength=GRID_CELLS**2)
+    return (sums / counts).reshape(GRID_CELLS, GRID_CELLS)
+
+
