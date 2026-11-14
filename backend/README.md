@@ -36,13 +36,15 @@ Health Check Path: /api/health
 
 The root `requirements.txt` includes the backend dependency list.
 
-The backend allows requests from `https://hack-14nov.vercel.app`. In Vercel,
-set `VITE_API_BASE_URL` to the Render service's assigned HTTPS URL and
-`VITE_DEMO_MODE=false`, then redeploy the frontend. The Render URL is assigned
-when the service is created; do not use `localhost` in Vercel's production
-environment. Model assets are bundled in the repository, so a persistent disk
-is not required. ANUGA and PyTorch inference can require more memory and CPU
-than a small instance provides; choose Render compute accordingly.
+The backend allows requests from `https://hack-14nov.vercel.app`. The
+production frontend defaults to `https://hack-14nov-2.onrender.com`; use
+`VITE_API_BASE_URL` only to override that URL. Do not use `localhost` in
+Vercel's production environment. The scheduled GitHub Actions workflow pings
+`/api/health` every five minutes to keep a free Render instance awake. This
+uses almost all of the 750 free instance-hours per month. Model assets are
+bundled in the repository, so a persistent disk is not required. ANUGA and
+PyTorch inference can require more memory and CPU than a small instance
+provides; choose Render compute accordingly.
 
 ## Installed models
 

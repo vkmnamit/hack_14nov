@@ -1,0 +1,22 @@
+name: Render backend health
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check Render health endpoint
+        env:
+          HEALTH_URL: https://hack-14nov-2.onrender.com/api/health
+        run: |
+          response="$(curl --fail --silent --show-error --max-time 120 "$HEALTH_URL")"
+          printf '%s\n' "$response"
+          printf '%s' "$response" | jq --exit-status '.status == "ok"'

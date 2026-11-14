@@ -132,12 +132,17 @@ Health Check Path: /api/health
 The root `requirements.txt` includes `backend/requirements.txt`, so the Render
 build command works from the repository root.
 
-In the Vercel project's Environment Variables, set `VITE_API_BASE_URL` to the
-Render service URL (for example, `https://your-service.onrender.com`, without
-a trailing slash) and set `VITE_DEMO_MODE=false`. Redeploy Vercel after setting
-these variables because Vite embeds them during the build. Do not use
-`http://localhost:8000` for the deployed frontend. Keep `VITE_API_BASE_URL`
-pointing at the actual Render URL assigned to your service.
+The production frontend defaults to `https://hack-14nov-2.onrender.com`.
+If `VITE_API_BASE_URL` is set in Vercel, make sure it has this same URL; a
+previous `localhost` value overrides the production default. Keep
+`VITE_DEMO_MODE=false` and redeploy after changing variables because Vite
+embeds them during the build. Do not use `http://localhost:8000` for the
+deployed frontend.
+
+The GitHub Actions workflow at `.github/workflows/render-health.yml` requests
+`/api/health` every five minutes and fails the run unless the API reports
+`status: ok`. This inbound traffic keeps a free Render web service from
+spinning down, but uses almost all of the 750 free instance-hours per month.
 
 ### 3. Run Development Server
 ```bash

@@ -15,8 +15,12 @@ const env = (import.meta as unknown as { env?: Record<string, string | undefined
 export const CESIUM_ION_TOKEN: string =
   env.VITE_CESIUM_ION_TOKEN ?? '';
 
-/** Base URL of the future FastAPI backend (no trailing slash). */
-export const API_BASE_URL: string = env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+/** Base URL of the FastAPI backend (no trailing slash). */
+const DEFAULT_API_BASE_URL =
+  env.MODE === 'production'
+    ? 'https://hack-14nov-2.onrender.com'
+    : 'http://localhost:8000';
+export const API_BASE_URL: string = env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL;
 
 /** Demo mode is an explicit fallback and can be enabled with VITE_DEMO_MODE=true. */
 export const DEMO_MODE_DEFAULT = env.VITE_DEMO_MODE === 'true';
