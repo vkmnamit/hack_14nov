@@ -326,3 +326,141 @@ def save_checkpoint(model: ConvLSTMSurrogate, path: Path) -> None:
     )
 
 
+def main() -> None:
+    args = parse_args()
+    if args.epochs < 1 or args.patience < 1 or args.chunk_length < 1:
+        raise ValueError("epochs, patience, and chunk length must be positive")
+    if args.mass_loss_weight < 0:
+        raise ValueError("mass-loss weight cannot be negative")
+
+    device = select_device(args.device)
+    if device.type == "cpu":
+        torch.set_num_threads(1)
+    torch.manual_seed(args.seed)
+    rng = np.random.default_rng(args.seed)
+    model = ConvLSTMSurrogate()
+    initial_state = torch.load(
+        args.initial_weights,
+        map_location="cpu",
+        weights_only=True,
+    )
+    model.load_state_dict(initial_state, strict=True)
+    model.to(device)
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=args.learning_rate,
+    )
+
+    args.output_weights.parent.mkdir(parents=True, exist_ok=True)
+    args.history.parent.mkdir(parents=True, exist_ok=True)
+    with np.load(args.data, allow_pickle=False) as data, np.load(
+        args.normalization,
+        allow_pickle=False,
+    ) as normalization:
+        verify_normalization(data, normalization)
+        train_indices = np.flatnonzero(data["split"] == "train")
+        validation_indices = np.flatnonzero(data["split"] == "validation")
+        if train_indices.size == 0 or validation_indices.size == 0:
+            raise ValueError("Dataset must contain train and validation scenarios")
+
+        baseline_validation = validate(
+            model,
+            data,
+            normalization,
+            validation_indices,
+            carry_hidden_state=False,
+        )
+        history: dict[str, Any] = {
+            "device": str(device),
+            "training_scenarios": int(train_indices.size),
+            "validation_scenarios": int(validation_indices.size),
+            "validation_selection_metric": (
+                "mean of depth-MAE ratio, water-volume-error ratio, and "
+                "CSI-miss ratio relative to the original checkpoint"
+            ),
+            "baseline_validation": baseline_validation,
+            "chunk_length": args.chunk_length,
+            "mass_loss_weight": args.mass_loss_weight,
+            "initial_weights": str(args.initial_weights),
+            "best_weights": str(args.output_weights),
+            "epochs": [],
+        }
+        best_validation_score = float("inf")
+        epochs_without_improvement = 0
+
+        print(
+            f"Training on {device}; {train_indices.size} train and "
+            f"{validation_indices.size} ANUGA validation scenarios"
+        )
+        for epoch in range(args.epochs):
+            started = time.perf_counter()
+            progress = epoch / max(args.epochs - 1, 1)
+            teacher_forcing_ratio = 0.5 * (1.0 - progress)
+            train_loss = train_epoch(
+                model,
+                optimizer,
+                data,
+                normalization,
+                train_indices,
+                device,
+                rng,
+                teacher_forcing_ratio,
+                args.chunk_length,
+                args.mass_loss_weight,
+            )
+            validation_metrics = validate(
+                model,
+                data,
+                normalization,
+                validation_indices,
+            )
+            score = validation_score(validation_metrics, baseline_validation)
+            epoch_record = {
+                "epoch": epoch + 1,
+                "train_loss": train_loss,
+                "teacher_forcing_ratio": teacher_forcing_ratio,
+                "validation": validation_metrics,
+                "validation_score": score,
+                "seconds": time.perf_counter() - started,
+            }
+            history["epochs"].append(epoch_record)
+            improved = score < best_validation_score
+            if improved:
+                best_validation_score = score
+                epochs_without_improvement = 0
+                history["best_epoch"] = epoch + 1
+                save_checkpoint(model, args.output_weights)
+            else:
+                epochs_without_improvement += 1
+
+            args.history.write_text(
+                json.dumps(history, indent=2, allow_nan=False) + "\n",
+                encoding="utf-8",
+            )
+            print(
+                f"Epoch {epoch + 1}/{args.epochs} | "
+                f"train loss {train_loss:.6f} | "
+                f"val 60-min depth MAE "
+                f"{validation_metrics['depth_mae_at_60min']:.5f} m | "
+                f"CSI {validation_metrics['wet_area_csi_at_60min']:.3f} | "
+                f"volume error "
+                f"{validation_metrics['water_volume_relative_error_pct_at_60min']:.1f}% | "
+                f"score {score:.3f} | "
+                f"teacher forcing {teacher_forcing_ratio:.2f} | "
+                f"{epoch_record['seconds']:.1f}s"
+            )
+            if epochs_without_improvement >= args.patience:
+                print("Early stopping: validation score did not improve.")
+                break
+
+        history["best_validation_score"] = best_validation_score
+        args.history.write_text(
+            json.dumps(history, indent=2, allow_nan=False) + "\n",
+            encoding="utf-8",
+        )
+        print(f"Best checkpoint: {args.output_weights}")
+        print(f"Training history: {args.history}")
+
+
+if __name__ == "__main__":
+    main()
