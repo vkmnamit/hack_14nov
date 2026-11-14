@@ -103,3 +103,34 @@ def load_dem() -> tuple[np.ndarray, float, float]:
     return dem, xll, yll
 
 
+def load_hourly_rainfall() -> tuple[dict[datetime, float], dict[str, object]]:
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    if POWER_CACHE.exists():
+        payload = json.loads(POWER_CACHE.read_text(encoding="utf-8"))
+    else:
+        request = urllib.request.Request(
+            POWER_URL,
+            headers={"User-Agent": "GuwahatiANUGADataset/1.0"},
+        )
+        with urllib.request.urlopen(request, timeout=120) as response:
+            payload = json.load(response)
+        POWER_CACHE.write_text(
+            json.dumps(payload, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+
+    parameter = payload["properties"]["parameter"]["PRECTOTCORR"]
+    units = payload["parameters"]["PRECTOTCORR"]["units"]
+    if units != "mm/hour":
+        raise ValueError(f"Unexpected NASA POWER precipitation units: {units}")
+    rainfall: dict[datetime, float] = {}
+    for timestamp, value in parameter.items():
+        numeric_value = float(value)
+        if numeric_value < 0:
+            continue
+        rainfall[datetime.strptime(timestamp, "%Y%m%d%H")] = numeric_value
+    if not rainfall:
+        raise ValueError("NASA POWER returned no valid precipitation records")
+    return rainfall, payload["header"]
+
+
