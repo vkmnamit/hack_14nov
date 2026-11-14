@@ -178,17 +178,20 @@ def predict_next_state(
     if not physics_informed:
         return correction_normalized, next_hidden_state
 
+    safe_state_std = state_std.clamp_min(1e-8)
     with torch.no_grad():
-        current_physical = current_normalized * state_std + state_mean
+        current_physical = current_normalized * safe_state_std + state_mean
         physical_baseline = shallow_water_step(
             current_physical,
             rainfall_effective_m_s,
             elevation_m,
             manning_n,
         )
-    predicted_physical = physical_baseline + correction_normalized * state_std
+    predicted_physical = (
+        physical_baseline + correction_normalized * safe_state_std
+    )
     predicted_physical = enforce_physical_state(predicted_physical)
-    prediction_normalized = (predicted_physical - state_mean) / state_std
+    prediction_normalized = (predicted_physical - state_mean) / safe_state_std
     return prediction_normalized, next_hidden_state
 
 
@@ -258,28 +261,35 @@ def run_rollout(
             model_input[0, 0, 6] = manning_norm
 
             model_input_tensor = torch.from_numpy(model_input).to(device)
-            current_normalized_tensor = torch.as_tensor(
-                state_norm[None],
-                dtype=torch.float32,
-                device=device,
-            )
-            effective_rainfall_tensor = torch.as_tensor(
-                effective_rainfall[frame][None, None],
-                dtype=torch.float32,
-                device=device,
-            )
-            output, next_hidden_state = predict_next_state(
-                model,
-                model_input_tensor,
-                current_normalized_tensor,
-                effective_rainfall_tensor,
-                elevation_tensor,
-                manning_tensor,
-                state_mean,
-                state_std,
-                hidden_state if carry_hidden_state else None,
-                physics_informed,
-            )
+            input_hidden_state = hidden_state if carry_hidden_state else None
+            if physics_informed:
+                current_normalized_tensor = torch.as_tensor(
+                    state_norm[None],
+                    dtype=torch.float32,
+                    device=device,
+                )
+                effective_rainfall_tensor = torch.as_tensor(
+                    effective_rainfall[frame][None, None],
+                    dtype=torch.float32,
+                    device=device,
+                )
+                output, next_hidden_state = predict_next_state(
+                    model,
+                    model_input_tensor,
+                    current_normalized_tensor,
+                    effective_rainfall_tensor,
+                    elevation_tensor,
+                    manning_tensor,
+                    state_mean,
+                    state_std,
+                    input_hidden_state,
+                    True,
+                )
+            else:
+                output, next_hidden_state = model.forward_with_state(
+                    model_input_tensor,
+                    input_hidden_state,
+                )
             hidden_state = next_hidden_state if carry_hidden_state else None
             output_norm = output[0].cpu().numpy()
             current = (
