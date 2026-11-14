@@ -183,3 +183,142 @@ def rasterize(values: np.ndarray, cell_ids: np.ndarray) -> np.ndarray:
     return (sums / counts).reshape(GRID_CELLS, GRID_CELLS)
 
 
+def run_scenario(
+    dem: np.ndarray,
+    xll: float,
+    yll: float,
+    hourly_rainfall_mm_hr: list[float],
+    manning_n: float,
+    infiltration_loss_mm_hr: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    spinup_seconds = SPINUP_HOURS * 3600.0
+    forecast_seconds = FORECAST_HOURS * 3600.0
+    forecast_steps = FORECAST_STEPS
+    domain = anuga.rectangular_cross_domain(
+        GRID_CELLS,
+        GRID_CELLS,
+        len1=GRID_CELLS * CELL_SIZE_M,
+        len2=GRID_CELLS * CELL_SIZE_M,
+        origin=(xll, yll),
+    )
+    domain.set_store(False)
+
+    def cell_indices(
+        x: np.ndarray,
+        y: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        columns = np.floor((x - xll) / CELL_SIZE_M).astype(np.int64)
+        rows_from_south = np.floor((y - yll) / CELL_SIZE_M).astype(np.int64)
+        columns = np.clip(columns, 0, GRID_CELLS - 1)
+        rows_from_south = np.clip(rows_from_south, 0, GRID_CELLS - 1)
+        return GRID_CELLS - 1 - rows_from_south, columns
+
+    def elevation_at(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+        rows, columns = cell_indices(x, y)
+        return dem[rows, columns]
+
+    domain.set_quantity("elevation", function=elevation_at)
+    domain.set_quantity("stage", function=elevation_at)
+    domain.set_quantity("xmomentum", 0.0)
+    domain.set_quantity("ymomentum", 0.0)
+    domain.set_quantity("friction", manning_n)
+    reflective = anuga.Reflective_boundary(domain)
+    domain.set_boundary(
+        {
+            "left": reflective,
+            "right": reflective,
+            "top": reflective,
+            "bottom": reflective,
+        }
+    )
+
+    def rainfall_rate_m_s(
+        _x: np.ndarray,
+        _y: np.ndarray,
+        time_s: float,
+    ) -> np.ndarray:
+        hour_index = min(
+            int(max(time_s, 0.0) // 3600.0),
+            len(hourly_rainfall_mm_hr) - 1,
+        )
+        net_rain_mm_hr = max(
+            hourly_rainfall_mm_hr[hour_index] - infiltration_loss_mm_hr,
+            0.0,
+        )
+        return np.full_like(_x, net_rain_mm_hr / 3_600_000.0)
+
+    rainfall_operator = anuga.Rate_operator(domain, rate=rainfall_rate_m_s)
+    centroids = domain.get_centroid_coordinates(absolute=True)
+    rows, columns = cell_indices(centroids[:, 0], centroids[:, 1])
+    cell_ids = rows * GRID_CELLS + columns
+    counts = np.bincount(cell_ids, minlength=GRID_CELLS**2)
+    if not np.all(counts == 4):
+        raise ValueError("Could not map ANUGA triangle centroids to raster cells")
+
+    def capture_state() -> np.ndarray:
+        elevation = domain.quantities["elevation"].centroid_values
+        stage = domain.quantities["stage"].centroid_values
+        depth = np.maximum(stage - elevation, 0.0)
+        xmomentum = domain.quantities["xmomentum"].centroid_values
+        ymomentum = domain.quantities["ymomentum"].centroid_values
+        return np.stack(
+            (
+                rasterize(depth, cell_ids),
+                rasterize(xmomentum, cell_ids),
+                rasterize(ymomentum, cell_ids),
+            )
+        ).astype(np.float32)
+
+    for _ in domain.evolve(yieldstep=600.0, finaltime=spinup_seconds):
+        pass
+
+    states = np.empty(
+        (forecast_steps + 1, 3, GRID_CELLS, GRID_CELLS),
+        dtype=np.float32,
+    )
+    raw_rainfall = np.empty(
+        (forecast_steps + 1, GRID_CELLS, GRID_CELLS),
+        dtype=np.float32,
+    )
+    effective_rainfall = np.empty_like(raw_rainfall)
+    mass_errors = np.empty(forecast_steps + 1, dtype=np.float32)
+    initial_state = capture_state()
+    initial_volume_m3 = float(initial_state[0].sum() * CELL_AREA_M2)
+    states[0] = initial_state
+
+    forecast_rain_mm_hr = hourly_rainfall_mm_hr[-1]
+    effective_rate_m_s = max(
+        forecast_rain_mm_hr - infiltration_loss_mm_hr,
+        0.0,
+    ) / 3_600_000.0
+    raw_rainfall[:] = forecast_rain_mm_hr
+    effective_rainfall[:] = effective_rate_m_s
+    mass_errors[0] = 0.0
+    for frame_index, _ in enumerate(
+        domain.evolve(
+            yieldstep=OUTPUT_STEP_S,
+            finaltime=spinup_seconds + forecast_seconds,
+        ),
+        start=1,
+    ):
+        if frame_index > forecast_steps:
+            raise RuntimeError("ANUGA emitted more frames than the forecast length")
+        states[frame_index] = capture_state()
+        elapsed_seconds = frame_index * OUTPUT_STEP_S
+        expected_influx_m3 = (
+            effective_rate_m_s
+            * elapsed_seconds
+            * GRID_CELLS**2
+            * CELL_AREA_M2
+        )
+        modeled_volume_m3 = float(states[frame_index, 0].sum() * CELL_AREA_M2)
+        mass_errors[frame_index] = abs(
+            modeled_volume_m3 - initial_volume_m3 - expected_influx_m3
+        ) / max(initial_volume_m3 + expected_influx_m3, 1.0)
+    if frame_index != forecast_steps:
+        raise RuntimeError(
+            f"Expected {forecast_steps} forecast frames, got {frame_index}"
+        )
+    return states, raw_rainfall, effective_rainfall, mass_errors
+
+
