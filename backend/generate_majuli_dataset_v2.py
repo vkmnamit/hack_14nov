@@ -102,6 +102,18 @@ def rasterize(values: np.ndarray, cell_ids: np.ndarray) -> np.ndarray:
     counts = np.bincount(cell_ids, minlength=GRID_CELLS**2)
     return (sums / counts).reshape(GRID_CELLS, GRID_CELLS)
 
+def run_scenario(
+    dem: np.ndarray,
+    xll: float,
+    yll: float,
+    rainfall_profile_mm_hr: list[float],
+    spatial_pattern: str,
+    manning_n: float,
+    infiltration_loss_mm_hr: float,
+    initial_condition: str,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    raise NotImplementedError
+
 def main() -> None:
     pass
 
