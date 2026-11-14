@@ -152,3 +152,65 @@ def make_model(weights_path: Path) -> ConvLSTMSurrogate:
     return model
 
 
+def run_rollout(
+    model: ConvLSTMSurrogate,
+    data: Any,
+    normalization: Any,
+    scenario_index: int,
+    carry_hidden_state: bool = False,
+) -> tuple[np.ndarray, float]:
+    truth = data["state_sequence"][scenario_index]
+    rainfall = data["raw_rainfall_mm_hr"][scenario_index]
+    infiltration = data["infiltration_loss_mm_hr"][scenario_index]
+    elevation = data["elevation_m"]
+    manning = data["manning_n"][scenario_index]
+
+    infiltration_norm = (
+        infiltration - normalization["infil_mean"]
+    ) / (normalization["infil_std"] + 1e-8)
+    elevation_norm = (
+        elevation - normalization["elev_mean"]
+    ) / (normalization["elev_std"] + 1e-8)
+    manning_norm = (
+        manning - normalization["mann_mean"]
+    ) / (normalization["mann_std"] + 1e-8)
+
+    current = truth[0].copy()
+    predicted = [current.copy()]
+    device = next(model.parameters()).device
+    hidden_state: tuple[torch.Tensor, torch.Tensor] | None = None
+    start = time.perf_counter()
+    with torch.inference_mode():
+        for frame in range(60):
+            state_norm = (
+                current - normalization["state_mean"][:, None, None]
+            ) / (normalization["state_std"][:, None, None] + 1e-8)
+            rainfall_norm = (
+                rainfall[frame] - normalization["rain_mean"]
+            ) / (normalization["rain_std"] + 1e-8)
+            model_input = np.empty((1, 1, 7, 50, 50), dtype=np.float32)
+            model_input[0, 0, 0:3] = state_norm
+            model_input[0, 0, 3] = rainfall_norm
+            model_input[0, 0, 4] = infiltration_norm
+            model_input[0, 0, 5] = elevation_norm
+            model_input[0, 0, 6] = manning_norm
+
+            model_input_tensor = torch.from_numpy(model_input).to(device)
+            if carry_hidden_state:
+                output, hidden_state = model.forward_with_state(
+                    model_input_tensor,
+                    hidden_state,
+                )
+            else:
+                output = model(model_input_tensor)
+            output_norm = output[0].cpu().numpy()
+            current = (
+                output_norm * (normalization["state_std"][:, None, None] + 1e-8)
+                + normalization["state_mean"][:, None, None]
+            )
+            current[0] = np.maximum(current[0], 0.0)
+            predicted.append(current.copy())
+
+    return np.stack(predicted), time.perf_counter() - start
+
+
