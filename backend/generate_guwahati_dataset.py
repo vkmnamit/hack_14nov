@@ -134,3 +134,42 @@ def load_hourly_rainfall() -> tuple[dict[datetime, float], dict[str, object]]:
     return rainfall, payload["header"]
 
 
+def select_event_times(
+    rainfall: dict[datetime, float],
+) -> list[tuple[datetime, str]]:
+    selected: list[tuple[datetime, str]] = []
+    for year, count in EVENTS_PER_YEAR.items():
+        candidates: list[tuple[float, datetime]] = []
+        for timestamp, current_rain in rainfall.items():
+            if timestamp.year != year or timestamp.month not in (6, 7, 8, 9):
+                continue
+            prior_times = [
+                timestamp - timedelta(hours=offset)
+                for offset in range(SPINUP_HOURS, 0, -1)
+            ]
+            if any(time not in rainfall for time in prior_times):
+                continue
+            total = sum(rainfall[time] for time in prior_times) + current_rain
+            if total > 0:
+                candidates.append((total, timestamp))
+        chosen: list[datetime] = []
+        for _, timestamp in sorted(candidates, reverse=True):
+            if all(
+                abs(timestamp - existing) >= timedelta(hours=24)
+                for existing in chosen
+            ):
+                chosen.append(timestamp)
+            if len(chosen) == count:
+                break
+        if len(chosen) != count:
+            raise ValueError(
+                f"Found only {len(chosen)} separated rainy windows for {year}; "
+                f"needed {count}"
+            )
+        selected.extend(
+            (timestamp, SPLIT_BY_YEAR[year])
+            for timestamp in sorted(chosen)
+        )
+    return selected
+
+
