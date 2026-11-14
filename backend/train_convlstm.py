@@ -250,3 +250,49 @@ def train_epoch(
     return chunk_loss_total / step_count
 
 
+def validate(
+    model: ConvLSTMSurrogate,
+    data: Any,
+    normalization: Any,
+    scenario_indices: np.ndarray,
+    carry_hidden_state: bool = True,
+) -> dict[str, float]:
+    model.eval()
+    metrics_by_minute: dict[int, list[dict[str, float | None]]] = {
+        15: [],
+        30: [],
+        60: [],
+    }
+    for scenario_index in scenario_indices:
+        prediction, _ = run_rollout(
+            model,
+            data,
+            normalization,
+            int(scenario_index),
+            carry_hidden_state=carry_hidden_state,
+        )
+        truth = data["state_sequence"][int(scenario_index)]
+        for minute in metrics_by_minute:
+            metrics_by_minute[minute].append(
+                calculate_metrics(prediction[minute], truth[minute])
+            )
+
+    result: dict[str, float] = {}
+    for minute, scenario_metrics in metrics_by_minute.items():
+        for metric_name in (
+            "depth_mae",
+            "wet_area_csi",
+            "wet_depth_mean_relative_error_pct",
+            "water_volume_relative_error_pct",
+        ):
+            values = [
+                metrics[metric_name]
+                for metrics in scenario_metrics
+                if metrics[metric_name] is not None
+            ]
+            result[f"{metric_name}_at_{minute}min"] = (
+                float(np.mean(values)) if values else float("nan")
+            )
+    return result
+
+
