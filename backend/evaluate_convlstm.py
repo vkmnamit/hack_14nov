@@ -19,6 +19,8 @@ import numpy as np
 import torch
 from torch import nn
 
+from shallow_water import enforce_physical_state, shallow_water_step
+
 
 BACKEND_DIR = Path(__file__).resolve().parent
 REPO_DIR = BACKEND_DIR.parent
@@ -114,6 +116,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Carry ConvLSTM state between autoregressive rollout steps.",
     )
+    parser.add_argument(
+        "--physics-informed",
+        action="store_true",
+        help="Interpret model outputs as corrections to a shallow-water step.",
+    )
     return parser.parse_args()
 
 
@@ -152,15 +159,50 @@ def make_model(weights_path: Path) -> ConvLSTMSurrogate:
     return model
 
 
+def predict_next_state(
+    model: ConvLSTMSurrogate,
+    model_input: torch.Tensor,
+    current_normalized: torch.Tensor,
+    rainfall_effective_m_s: torch.Tensor,
+    elevation_m: torch.Tensor,
+    manning_n: torch.Tensor,
+    state_mean: torch.Tensor,
+    state_std: torch.Tensor,
+    hidden_state: tuple[torch.Tensor, torch.Tensor] | None,
+    physics_informed: bool,
+) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+    correction_normalized, next_hidden_state = model.forward_with_state(
+        model_input,
+        hidden_state,
+    )
+    if not physics_informed:
+        return correction_normalized, next_hidden_state
+
+    with torch.no_grad():
+        current_physical = current_normalized * state_std + state_mean
+        physical_baseline = shallow_water_step(
+            current_physical,
+            rainfall_effective_m_s,
+            elevation_m,
+            manning_n,
+        )
+    predicted_physical = physical_baseline + correction_normalized * state_std
+    predicted_physical = enforce_physical_state(predicted_physical)
+    prediction_normalized = (predicted_physical - state_mean) / state_std
+    return prediction_normalized, next_hidden_state
+
+
 def run_rollout(
     model: ConvLSTMSurrogate,
     data: Any,
     normalization: Any,
     scenario_index: int,
     carry_hidden_state: bool = False,
+    physics_informed: bool = False,
 ) -> tuple[np.ndarray, float]:
     truth = data["state_sequence"][scenario_index]
     rainfall = data["raw_rainfall_mm_hr"][scenario_index]
+    effective_rainfall = data["rainfall_effective_m_s"][scenario_index]
     infiltration = data["infiltration_loss_mm_hr"][scenario_index]
     elevation = data["elevation_m"]
     manning = data["manning_n"][scenario_index]
@@ -179,6 +221,26 @@ def run_rollout(
     predicted = [current.copy()]
     device = next(model.parameters()).device
     hidden_state: tuple[torch.Tensor, torch.Tensor] | None = None
+    state_mean = torch.as_tensor(
+        normalization["state_mean"],
+        dtype=torch.float32,
+        device=device,
+    ).view(1, 3, 1, 1)
+    state_std = torch.as_tensor(
+        normalization["state_std"],
+        dtype=torch.float32,
+        device=device,
+    ).view(1, 3, 1, 1)
+    elevation_tensor = torch.as_tensor(
+        elevation,
+        dtype=torch.float32,
+        device=device,
+    )
+    manning_tensor = torch.as_tensor(
+        manning,
+        dtype=torch.float32,
+        device=device,
+    )
     start = time.perf_counter()
     with torch.inference_mode():
         for frame in range(60):
@@ -196,13 +258,29 @@ def run_rollout(
             model_input[0, 0, 6] = manning_norm
 
             model_input_tensor = torch.from_numpy(model_input).to(device)
-            if carry_hidden_state:
-                output, hidden_state = model.forward_with_state(
-                    model_input_tensor,
-                    hidden_state,
-                )
-            else:
-                output = model(model_input_tensor)
+            current_normalized_tensor = torch.as_tensor(
+                state_norm[None],
+                dtype=torch.float32,
+                device=device,
+            )
+            effective_rainfall_tensor = torch.as_tensor(
+                effective_rainfall[frame][None, None],
+                dtype=torch.float32,
+                device=device,
+            )
+            output, next_hidden_state = predict_next_state(
+                model,
+                model_input_tensor,
+                current_normalized_tensor,
+                effective_rainfall_tensor,
+                elevation_tensor,
+                manning_tensor,
+                state_mean,
+                state_std,
+                hidden_state if carry_hidden_state else None,
+                physics_informed,
+            )
+            hidden_state = next_hidden_state if carry_hidden_state else None
             output_norm = output[0].cpu().numpy()
             current = (
                 output_norm * (normalization["state_std"][:, None, None] + 1e-8)
@@ -494,6 +572,7 @@ def main() -> None:
                 normalization,
                 index,
                 carry_hidden_state=args.carry_hidden_state,
+                physics_informed=args.physics_informed,
             )
             rollout_times.append(rollout_seconds)
             truth = data["state_sequence"][index]
@@ -584,6 +663,20 @@ def main() -> None:
             "cell_area_m2": CELL_AREA_M2,
             "device": "cpu",
             "hidden_state_carried": args.carry_hidden_state,
+            "physics_informed": args.physics_informed,
+            "physics_solver": (
+                {
+                    "method": "hydrostatic-reconstruction Rusanov flux",
+                    "gravity_m_s2": 9.81,
+                    "cell_size_m": 30.0,
+                    "cfl": 0.45,
+                    "rainfall_units": "effective metres per second",
+                    "friction": "Manning",
+                    "boundaries": "reflective",
+                }
+                if args.physics_informed
+                else None
+            ),
             "torch_version": torch.__version__,
             "model_parameter_count": sum(
                 parameter.numel() for parameter in model.parameters()

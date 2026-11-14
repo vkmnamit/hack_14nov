@@ -20,6 +20,7 @@ from evaluate_convlstm import (
     NORMALIZATION_PATH,
     ConvLSTMSurrogate,
     calculate_metrics,
+    predict_next_state,
     run_rollout,
     verify_normalization,
 )
@@ -27,8 +28,8 @@ from evaluate_convlstm import (
 
 REPO_DIR = BACKEND_DIR.parent
 INITIAL_WEIGHTS = MODEL_DIR / "convlstm_surrogate.pt"
-OUTPUT_WEIGHTS = MODEL_DIR / "convlstm_multistep.pt"
-HISTORY_PATH = MODEL_DIR / "convlstm_multistep_training.json"
+OUTPUT_WEIGHTS = MODEL_DIR / "convlstm_hybrid.pt"
+HISTORY_PATH = MODEL_DIR / "convlstm_hybrid_training.json"
 TIMESTEPS = 60
 CELL_AREA_M2 = 30.0**2
 WET_THRESHOLD_M = 0.01
@@ -39,6 +40,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data", type=Path, default=DATA_PATH)
     parser.add_argument("--normalization", type=Path, default=NORMALIZATION_PATH)
     parser.add_argument("--initial-weights", type=Path, default=INITIAL_WEIGHTS)
+    parser.add_argument(
+        "--initialization-mode",
+        choices=("absolute", "hybrid_residual"),
+        default="absolute",
+        help="Whether initial weights predict states or residual corrections.",
+    )
     parser.add_argument("--output-weights", type=Path, default=OUTPUT_WEIGHTS)
     parser.add_argument("--history", type=Path, default=HISTORY_PATH)
     parser.add_argument("--epochs", type=int, default=12)
@@ -81,6 +88,11 @@ def normalized_static_inputs(
     )
     manning = torch.as_tensor(
         data["manning_n"][scenario_index],
+        dtype=torch.float32,
+        device=device,
+    )
+    elevation_m = torch.as_tensor(
+        data["elevation_m"],
         dtype=torch.float32,
         device=device,
     )
@@ -173,9 +185,17 @@ def train_epoch(
                     ),
                     dim=1,
                 ).unsqueeze(1)
-                prediction_norm, hidden_state = model.forward_with_state(
+                prediction_norm, hidden_state = predict_next_state(
+                    model,
                     model_input,
+                    current_norm,
+                    effective_rainfall[frame].unsqueeze(0).unsqueeze(0),
+                    elevation_m,
+                    manning,
+                    state_mean,
+                    state_std,
                     hidden_state,
+                    physics_informed=True,
                 )
                 target_norm = truth_norm[frame + 1 : frame + 2]
 
@@ -256,6 +276,7 @@ def validate(
     normalization: Any,
     scenario_indices: np.ndarray,
     carry_hidden_state: bool = True,
+    physics_informed: bool = False,
 ) -> dict[str, float]:
     model.eval()
     metrics_by_minute: dict[int, list[dict[str, float | None]]] = {
@@ -270,6 +291,7 @@ def validate(
             normalization,
             int(scenario_index),
             carry_hidden_state=carry_hidden_state,
+            physics_informed=physics_informed,
         )
         truth = data["state_sequence"][int(scenario_index)]
         for minute in metrics_by_minute:
@@ -368,8 +390,13 @@ def main() -> None:
             data,
             normalization,
             validation_indices,
-            carry_hidden_state=False,
+            carry_hidden_state=True,
+            physics_informed=args.initialization_mode == "hybrid_residual",
         )
+        if args.initialization_mode == "absolute":
+            with torch.no_grad():
+                torch.nn.init.zeros_(model.output_layer.weight)
+                torch.nn.init.zeros_(model.output_layer.bias)
         history: dict[str, Any] = {
             "device": str(device),
             "training_scenarios": int(train_indices.size),
@@ -381,6 +408,17 @@ def main() -> None:
             "baseline_validation": baseline_validation,
             "chunk_length": args.chunk_length,
             "mass_loss_weight": args.mass_loss_weight,
+            "initialization_mode": args.initialization_mode,
+            "physics_solver": {
+                "method": "hydrostatic-reconstruction Rusanov flux",
+                "gravity_m_s2": 9.81,
+                "cell_size_m": 30.0,
+                "cfl": 0.45,
+                "rainfall_units": "effective metres per second",
+                "friction": "Manning",
+                "boundaries": "reflective",
+                "correction": "ConvLSTM residual in normalized state units",
+            },
             "initial_weights": str(args.initial_weights),
             "best_weights": str(args.output_weights),
             "epochs": [],
@@ -413,6 +451,7 @@ def main() -> None:
                 data,
                 normalization,
                 validation_indices,
+                physics_informed=True,
             )
             score = validation_score(validation_metrics, baseline_validation)
             epoch_record = {

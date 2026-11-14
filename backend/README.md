@@ -149,22 +149,34 @@ cd backend
 By default, it fine-tunes from the original checkpoint on the 36 training
 scenarios, carries hidden state across 10-frame truncated-backpropagation
 chunks, decays teacher forcing over 12 epochs, and selects the checkpoint with
-the best validation score across the 18 ANUGA validation scenarios. The score
-equally combines depth-MAE ratio, water-volume-error ratio, and wet-area CSI
-miss ratio against the original checkpoint. A validation-only sweep over
-mass-loss weights selected `1e-8`; pass `--mass-loss-weight` to override it.
-The original weights are kept;
-the selected model and epoch history are saved as
-`model/convlstm_multistep.pt` and `model/convlstm_multistep_training.json`.
+the best validation score across the 18 ANUGA validation scenarios. Each
+forecast step first applies a CFL-subcycled finite-volume shallow-water update
+(hydrostatic-reconstruction Rusanov fluxes, effective rainfall, bed elevation,
+reflective boundaries, and Manning friction); the ConvLSTM learns a residual
+correction to that provisional state. The corrected depth and momenta are fed
+into the next step. This solver is a lightweight baseline, not a replacement
+for ANUGA's full solver.
+
+The score equally combines depth-MAE ratio, water-volume-error ratio, and
+wet-area CSI miss ratio against the original checkpoint. A validation-only
+sweep over mass-loss weights selected `1e-8`; pass `--mass-loss-weight` to
+override it. The original weights are kept; the hybrid model and epoch history
+are saved as `model/convlstm_hybrid.pt` and
+`model/convlstm_hybrid_training.json`.
 
 Evaluate that checkpoint with recurrent state carried between rollout steps:
 
 ```sh
 .venv/bin/python evaluate_convlstm.py \
-  --weights ../model/convlstm_multistep.pt \
+  --weights ../model/convlstm_hybrid.pt \
   --carry-hidden-state \
+  --physics-informed \
   --output-dir data/processed/majuli_training_v2/convlstm_multistep_evaluation
 ```
+
+Legacy checkpoints predict the next absolute state and must be evaluated
+without `--physics-informed`. To continue training a hybrid checkpoint, pass
+it as `--initial-weights` and set `--initialization-mode hybrid_residual`.
 
 The validation set is used to select the checkpoint. After selection, run the
 separate test split once for a final assessment by adding `--split test` and
@@ -209,6 +221,7 @@ Fine-tune a separate checkpoint and evaluate both held-out splits:
   --normalization ../model/guwahati_normalization.npz \
   --weights ../model/guwahati_convlstm.pt \
   --carry-hidden-state \
+  --physics-informed \
   --split validation \
   --output-dir data/processed/guwahati/evaluation_validation
 
@@ -217,6 +230,7 @@ Fine-tune a separate checkpoint and evaluate both held-out splits:
   --normalization ../model/guwahati_normalization.npz \
   --weights ../model/guwahati_convlstm.pt \
   --carry-hidden-state \
+  --physics-informed \
   --split test \
   --output-dir data/processed/guwahati/evaluation_test
 ```
