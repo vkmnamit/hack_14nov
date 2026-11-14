@@ -391,7 +391,91 @@ def main() -> None:
             for record in scenario_records
         ]
     )
-    print("Training normalization statistics computed")
+    times = np.arange(FRAME_COUNT, dtype=np.float32) * OUTPUT_STEP_S
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    archive_path = DATA_DIR / "majuli_anuga_convlstm_v2.npz"
+    np.savez_compressed(
+        archive_path,
+        state_sequence=np.asarray(states_array, dtype=np.float32),
+        initial_state=np.asarray(initial_states, dtype=np.float32),
+        raw_rainfall_mm_hr=np.asarray(raw_rain_array, dtype=np.float32),
+        rainfall_effective_m_s=np.asarray(
+            effective_rain_array,
+            dtype=np.float32,
+        ),
+        infiltration_loss_mm_hr=infiltration_maps,
+        elevation_m=np.asarray(dem, dtype=np.float32),
+        manning_n=roughness_maps,
+        wet_mask_1cm=np.asarray(
+            states_array[:, :, 0] >= FLOOD_DEPTH_THRESHOLD_M,
+            dtype=np.bool_,
+        ),
+        times_seconds=times,
+        scenario_ids=scenario_ids,
+        scenario_names=np.asarray(
+            [record["name"] for record in scenario_records],
+            dtype="U80",
+        ),
+        temporal_profiles=np.asarray(
+            [record["temporal_profile"] for record in scenario_records],
+            dtype="U32",
+        ),
+        spatial_patterns=np.asarray(
+            [record["spatial_pattern"] for record in scenario_records],
+            dtype="U32",
+        ),
+        initial_condition_names=np.asarray(
+            [record["initial_condition"] for record in scenario_records],
+            dtype="U32",
+        ),
+        rainfall_profiles_mm_hr=np.asarray(
+            [record["rainfall_mm_hr_by_10min"] for record in scenario_records],
+            dtype=np.float32,
+        ),
+        split=splits,
+        mass_balance_relative_error=mass_error_array,
+        state_channel_names=np.asarray(
+            ["depth_m", "xmomentum_m2_s", "ymomentum_m2_s"],
+            dtype="U32",
+        ),
+        raw_rainfall_units=np.asarray("mm/hour"),
+        effective_rainfall_units=np.asarray("m/second"),
+        input_channel_names=np.asarray(
+            [
+                "depth_m",
+                "xmomentum_m2_s",
+                "ymomentum_m2_s",
+                "raw_rainfall_mm_hr",
+                "infiltration_loss_mm_hr",
+                "elevation_m",
+                "manning_n",
+            ],
+            dtype="U32",
+        ),
+        normalization_state_mean=np.asarray(state_mean, dtype=np.float32),
+        normalization_state_std=np.maximum(state_std, 1e-8).astype(np.float32),
+        normalization_raw_rainfall_mean_mm_hr=np.float32(rain_mean),
+        normalization_raw_rainfall_std_mm_hr=np.float32(max(rain_std, 1e-8)),
+        normalization_effective_rainfall_mean_m_s=np.float32(
+            effective_rain_mean
+        ),
+        normalization_effective_rainfall_std_m_s=np.float32(
+            max(effective_rain_std, 1e-8)
+        ),
+        normalization_infiltration_mean_mm_hr=np.float32(
+            train_infiltration.mean()
+        ),
+        normalization_infiltration_std_mm_hr=np.float32(
+            max(train_infiltration.std(), 1e-8)
+        ),
+        normalization_manning_mean=np.float32(train_roughness.mean()),
+        normalization_manning_std=np.float32(
+            max(train_roughness.std(), 1e-8)
+        ),
+        normalization_elevation_mean_m=np.float32(dem.mean()),
+        normalization_elevation_std_m=np.float32(max(dem.std(), 1e-8)),
+    )
+    print("Dataset arrays saved")
 
 if __name__ == "__main__":
     main()
